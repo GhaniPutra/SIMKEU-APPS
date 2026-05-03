@@ -28,7 +28,7 @@ class ProductProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    final result = await ApiService.get(ApiConstants.products);
+    final result = await ApiService.get(ApiConstants.posItems);
 
     if (result['success'] == true) {
       final raw = result['data'];

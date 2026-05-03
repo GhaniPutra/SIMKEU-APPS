@@ -81,7 +81,7 @@ class SaleProvider extends ChangeNotifier {
       if (notes != null && notes.isNotEmpty) 'notes': notes,
     };
 
-    final result = await ApiService.post(ApiConstants.sales, body);
+    final result = await ApiService.post(ApiConstants.posTransaction, body);
     _isLoading = false;
 
     if (result['success'] == true) {
