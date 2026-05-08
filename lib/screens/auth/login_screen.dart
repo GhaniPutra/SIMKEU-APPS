@@ -161,32 +161,48 @@ class _LoginScreenState extends State<LoginScreen>
                           const SizedBox(height: 24),
 
                           // Email
-                          AppTextField(
-                            label      : 'Email',
-                            hint       : 'pegawai@simkeu.com',
-                            controller : _emailCtrl,
-                            prefixIcon : Icons.email_outlined,
-                            keyboardType: TextInputType.emailAddress,
-                            validator  : (v) {
-                              if (v == null || v.isEmpty) return 'Email wajib diisi';
-                              if (!v.contains('@')) return 'Format email tidak valid';
-                              return null;
-                            },
+                          Consumer<AuthProvider>(
+                            builder: (_, auth, __) => AppTextField(
+                              label      : 'Email',
+                              hint       : 'pegawai@simkeu.com',
+                              controller : _emailCtrl,
+                              prefixIcon : Icons.email_outlined,
+                              keyboardType: TextInputType.emailAddress,
+                              enabled    : !auth.isLoading,
+                              onChanged  : (_) {
+                                if (auth.errorMessage != null) {
+                                  auth.clearError();
+                                }
+                              },
+                              validator  : (v) {
+                                if (v == null || v.isEmpty) return 'Email wajib diisi';
+                                if (!v.contains('@')) return 'Format email tidak valid';
+                                return null;
+                              },
+                            ),
                           ),
                           const SizedBox(height: 16),
 
                           // Password
-                          AppTextField(
-                            label       : 'Password',
-                            hint        : '••••••••',
-                            controller  : _passwordCtrl,
-                            prefixIcon  : Icons.lock_outline,
-                            obscureText : true,
-                            validator   : (v) {
-                              if (v == null || v.isEmpty) return 'Password wajib diisi';
-                              if (v.length < 6) return 'Password minimal 6 karakter';
-                              return null;
-                            },
+                          Consumer<AuthProvider>(
+                            builder: (_, auth, __) => AppTextField(
+                              label       : 'Password',
+                              hint        : '••••••••',
+                              controller  : _passwordCtrl,
+                              prefixIcon  : Icons.lock_outline,
+                              obscureText : true,
+                              enabled     : !auth.isLoading,
+                              onChanged   : (_) {
+                                if (auth.errorMessage != null) {
+                                  auth.clearError();
+                                }
+                              },
+                              validator   : (v) {
+                                if (v == null || v.isEmpty) return 'Password wajib diisi';
+                                if (v.length < 6) return 'Password minimal 6 karakter';
+                                return null;
+                              },
+                            ),
                           ),
                           const SizedBox(height: 24),
 
@@ -210,12 +226,30 @@ class _LoginScreenState extends State<LoginScreen>
                                         color: AppColors.error, size: 18),
                                     const SizedBox(width: 8),
                                     Expanded(
-                                      child: Text(
-                                        auth.errorMessage!,
-                                        style: GoogleFonts.poppins(
-                                          color  : AppColors.error,
-                                          fontSize: 12,
-                                        ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            auth.errorMessage!,
+                                            style: GoogleFonts.poppins(
+                                              color  : AppColors.error,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          if (auth.errorMessage!.contains('koneksi') ||
+                                              auth.errorMessage!.contains('server'))
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 6),
+                                              child: Text(
+                                                'Pastikan WiFi/data aktif atau coba lagi',
+                                                style: GoogleFonts.poppins(
+                                                  color  : AppColors.textSecondary,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     ),
                                   ],

@@ -7,15 +7,17 @@ import '../core/services/api_service.dart';
 import '../models/expense_model.dart';
 
 class ExpenseProvider extends ChangeNotifier {
-  List<ExpenseModel> _expenses     = [];
-  bool               _isLoading    = false;
+  List<ExpenseModel> _expenses              = [];
+  List<dynamic>      _expensesReportByCategory = [];
+  bool               _isLoading             = false;
   String?            _errorMessage;
-  double             _totalMonth   = 0;
+  double             _totalMonth            = 0;
 
-  List<ExpenseModel> get expenses     => _expenses;
-  bool               get isLoading    => _isLoading;
-  String?            get errorMessage => _errorMessage;
-  double             get totalMonth   => _totalMonth;
+  List<ExpenseModel> get expenses                => _expenses;
+  List<dynamic>      get expensesReportByCategory => _expensesReportByCategory;
+  bool               get isLoading               => _isLoading;
+  String?            get errorMessage           => _errorMessage;
+  double             get totalMonth             => _totalMonth;
 
   // ── Ambil daftar pengeluaran ──────────────────────────
   Future<void> fetchExpenses({String? bulan, String? tahun}) async {
@@ -77,5 +79,71 @@ class ExpenseProvider extends ChangeNotifier {
       return null;
     }
     return result['message'] as String? ?? 'Gagal menghapus pengeluaran';
+  }
+
+  // ── Ambil laporan pengeluaran per periode ────────────
+  Future<void> fetchExpensesReportByPeriod({
+    String? startDate,
+    String? endDate,
+  }) async {
+    _isLoading    = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final params = <String, String>{};
+    if (startDate != null) params['start_date'] = startDate;
+    if (endDate != null) params['end_date'] = endDate;
+
+    final result = await ApiService.get(
+      ApiConstants.expensesReportPeriod,
+      queryParams: params.isEmpty ? null : params,
+    );
+
+    if (result['success'] == true) {
+      final raw = result['data'];
+      final list = (raw is List) ? raw : (raw is Map ? raw['data'] : []);
+      _expensesReportByCategory = list as List<dynamic>;
+    } else {
+      _errorMessage = result['message'] as String? ?? 'Gagal memuat laporan pengeluaran';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  // ── Ambil laporan pengeluaran per kategori ──────────
+  Future<void> fetchExpensesReportByCategory({
+    String? startDate,
+    String? endDate,
+  }) async {
+    _isLoading    = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final params = <String, String>{};
+    if (startDate != null) params['start_date'] = startDate;
+    if (endDate != null) params['end_date'] = endDate;
+
+    final result = await ApiService.get(
+      ApiConstants.expensesReportByCategory,
+      queryParams: params.isEmpty ? null : params,
+    );
+
+    if (result['success'] == true) {
+      final raw = result['data'];
+      final list = (raw is List) ? raw : (raw is Map ? raw['data'] : []);
+      _expensesReportByCategory = list as List<dynamic>;
+    } else {
+      _errorMessage = result['message'] as String? ?? 'Gagal memuat laporan pengeluaran per kategori';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  // ── Clear error message ─────────────────────────────
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
   }
 }

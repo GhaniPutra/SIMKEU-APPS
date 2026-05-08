@@ -39,8 +39,16 @@ class AuthProvider extends ChangeNotifier {
   // ── Login ─────────────────────────────────────────────
   Future<bool> login(String email, String password) async {
     _isLoading     = true;
-    _errorMessage  = null;
+    _errorMessage  = null;  // Clear error sebelum attempt login
     notifyListeners();
+
+    // Validasi input dasar
+    if (email.isEmpty || password.isEmpty) {
+      _isLoading = false;
+      _errorMessage = 'Email dan password harus diisi';
+      notifyListeners();
+      return false;
+    }
 
     final result = await AuthService.login(email.trim(), password);
 
@@ -48,6 +56,7 @@ class AuthProvider extends ChangeNotifier {
 
     if (result['success'] == true) {
       _isLoggedIn = true;
+      _errorMessage = null;
       final user = result['data']?['user'] as Map<String, dynamic>?;
       if (user != null) {
         _currentUser = UserModel.fromJson(user);
@@ -55,7 +64,23 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } else {
-      _errorMessage = result['message'] as String? ?? 'Login gagal';
+      // Handle berbagai jenis error dari API
+      final message = result['message'] as String?;
+      final statusCode = result['statusCode'] as int?;
+      
+      if (statusCode == 401) {
+        _errorMessage = 'Email atau password salah';
+      } else if (statusCode == 422) {
+        _errorMessage = 'Data tidak valid. Periksa kembali email & password Anda';
+      } else if (statusCode == 500) {
+        _errorMessage = 'Server sedang bermasalah. Coba lagi nanti';
+      } else if (message != null && message.contains('koneksi')) {
+        _errorMessage = 'Tidak ada koneksi internet. Periksa WiFi atau mobile data Anda';
+      } else if (message != null && message.contains('timeout')) {
+        _errorMessage = 'Koneksi terlalu lambat. Coba lagi';
+      } else {
+        _errorMessage = message ?? 'Login gagal. Coba lagi';
+      }
       notifyListeners();
       return false;
     }

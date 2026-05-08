@@ -2,6 +2,7 @@
 // HTTP client wrapper untuk semua request ke API SIMKEU
 // Otomatis menyisipkan token Bearer dari SharedPreferences
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -32,14 +33,51 @@ class ApiService {
     return headers;
   }
 
-  // ── Parsing response menjadi Map ──────────────────────
+  // ── Parsing response dengan HTTP status handling ────────
   static Map<String, dynamic> _parseResponse(http.Response response) {
     try {
-      return json.decode(response.body) as Map<String, dynamic>;
-    } catch (_) {
+      // Handle HTTP status codes
+      if (response.statusCode == 401) {
+        return {
+          'success': false,
+          'message': 'Email atau password salah',
+          'statusCode': 401,
+        };
+      } else if (response.statusCode == 422) {
+        // Validation error
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        return {
+          'success': false,
+          'message': 'Data tidak valid',
+          'errors': data['errors'] ?? {},
+          'statusCode': 422,
+        };
+      } else if (response.statusCode == 500) {
+        return {
+          'success': false,
+          'message': 'Terjadi kesalahan pada server',
+          'statusCode': 500,
+        };
+      } else if (response.statusCode != 200 && response.statusCode != 201) {
+        return {
+          'success': false,
+          'message': 'Terjadi kesalahan: ${response.statusCode}',
+          'statusCode': response.statusCode,
+        };
+      }
+
+      // Parse successful response
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      return data;
+    } on FormatException {
       return {
         'success': false,
-        'message': 'Gagal memproses respons dari server',
+        'message': 'Format respons dari server tidak valid',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan: ${e.toString()}',
       };
     }
   }
@@ -56,10 +94,21 @@ class ApiService {
           .get(uri, headers: await _headers(withAuth: withAuth))
           .timeout(const Duration(seconds: _timeoutSeconds));
       return _parseResponse(response);
-    } on SocketException {
-      return {'success': false, 'message': 'Tidak ada koneksi internet'};
+    } on SocketException catch (e) {
+      return {
+        'success': false,
+        'message': 'Tidak ada koneksi internet (${e.message})',
+      };
+    } on TimeoutException {
+      return {
+        'success': false,
+        'message': 'Waktu koneksi habis. Cek koneksi internet Anda.',
+      };
     } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan: $e'};
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan: ${e.toString()}',
+      };
     }
   }
 
@@ -78,10 +127,21 @@ class ApiService {
           )
           .timeout(const Duration(seconds: _timeoutSeconds));
       return _parseResponse(response);
-    } on SocketException {
-      return {'success': false, 'message': 'Tidak ada koneksi internet'};
+    } on SocketException catch (e) {
+      return {
+        'success': false,
+        'message': 'Tidak ada koneksi internet (${e.message})',
+      };
+    } on TimeoutException {
+      return {
+        'success': false,
+        'message': 'Waktu koneksi habis. Cek koneksi internet Anda.',
+      };
     } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan: $e'};
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan: ${e.toString()}',
+      };
     }
   }
 
@@ -99,10 +159,21 @@ class ApiService {
           )
           .timeout(const Duration(seconds: _timeoutSeconds));
       return _parseResponse(response);
-    } on SocketException {
-      return {'success': false, 'message': 'Tidak ada koneksi internet'};
+    } on SocketException catch (e) {
+      return {
+        'success': false,
+        'message': 'Tidak ada koneksi internet (${e.message})',
+      };
+    } on TimeoutException {
+      return {
+        'success': false,
+        'message': 'Waktu koneksi habis. Cek koneksi internet Anda.',
+      };
     } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan: $e'};
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan: ${e.toString()}',
+      };
     }
   }
 
@@ -113,10 +184,21 @@ class ApiService {
           .delete(Uri.parse(url), headers: await _headers())
           .timeout(const Duration(seconds: _timeoutSeconds));
       return _parseResponse(response);
-    } on SocketException {
-      return {'success': false, 'message': 'Tidak ada koneksi internet'};
+    } on SocketException catch (e) {
+      return {
+        'success': false,
+        'message': 'Tidak ada koneksi internet (${e.message})',
+      };
+    } on TimeoutException {
+      return {
+        'success': false,
+        'message': 'Waktu koneksi habis. Cek koneksi internet Anda.',
+      };
     } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan: $e'};
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan: ${e.toString()}',
+      };
     }
   }
 }

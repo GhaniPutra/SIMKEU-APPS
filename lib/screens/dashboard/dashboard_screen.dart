@@ -81,7 +81,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     // Halaman berdasarkan bottom nav
     final pages = [
-      _HomeTab(isRefreshing: _isRefreshing, onRefresh: _loadData),
+      _HomeTab(
+        isRefreshing: _isRefreshing,
+        onRefresh: _loadData,
+        onSwitchToPos: () => setState(() => _selectedIndex = 1),
+        onSwitchToSales: () => setState(() => _selectedIndex = 2),
+      ),
       const POSScreen(),
       const SalesHistoryScreen(),
       const ExpenseScreen(),
@@ -139,8 +144,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 class _HomeTab extends StatelessWidget {
   final bool           isRefreshing;
   final VoidCallback   onRefresh;
+  final VoidCallback   onSwitchToPos;
+  final VoidCallback   onSwitchToSales;
 
-  const _HomeTab({required this.isRefreshing, required this.onRefresh});
+  const _HomeTab({
+    required this.isRefreshing,
+    required this.onRefresh,
+    required this.onSwitchToPos,
+    required this.onSwitchToSales,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -210,11 +222,7 @@ class _HomeTab extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
                 child: GestureDetector(
-                  onTap: () {
-                    // Switch ke tab POS
-                    final state = context.findAncestorStateOfType<_DashboardScreenState>();
-                    state?.setState(() => state._selectedIndex = 1);
-                  },
+                  onTap: onSwitchToPos,
                   child: Container(
                     padding    : const EdgeInsets.all(20),
                     decoration : BoxDecoration(
@@ -341,10 +349,7 @@ class _HomeTab extends StatelessWidget {
                       ),
                     ),
                     TextButton(
-                      onPressed: () {
-                        final state = context.findAncestorStateOfType<_DashboardScreenState>();
-                        state?.setState(() => state._selectedIndex = 2);
-                      },
+                      onPressed: onSwitchToSales,
                       child: Text(
                         'Lihat Semua',
                         style: GoogleFonts.poppins(

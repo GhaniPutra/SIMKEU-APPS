@@ -18,6 +18,14 @@ class AuthService {
     String email,
     String password,
   ) async {
+    // Validasi input
+    if (email.isEmpty || password.isEmpty) {
+      return {
+        'success': false,
+        'message': 'Email dan password tidak boleh kosong',
+      };
+    }
+
     final result = await ApiService.post(
       ApiConstants.login,
       {'email': email, 'password': password},
@@ -25,19 +33,52 @@ class AuthService {
     );
 
     if (result['success'] == true) {
-      final data = result['data'];
-      final token = data['token'] as String?;
-      final user  = data['user']  as Map<String, dynamic>?;
+      try {
+        final data = result['data'] as Map<String, dynamic>?;
+        
+        if (data == null) {
+          return {
+            'success': false,
+            'message': 'Format respons dari server tidak valid',
+          };
+        }
 
-      if (token != null) {
+        final token = data['token'] as String?;
+        final user  = data['user']  as Map<String, dynamic>?;
+
+        // Validasi token
+        if (token == null || token.isEmpty) {
+          return {
+            'success': false,
+            'message': 'Token tidak diterima dari server',
+          };
+        }
+
+        // Validasi user data
+        if (user == null) {
+          return {
+            'success': false,
+            'message': 'Data user tidak diterima dari server',
+          };
+        }
+
+        // Simpan session
         await _saveSession(
           token: token,
-          userId: user?['id']?.toString() ?? '',
-          userName: user?['name']?.toString() ?? '',
-          userEmail: user?['email']?.toString() ?? '',
+          userId: user['id']?.toString() ?? '',
+          userName: user['name']?.toString() ?? 'Pegawai',
+          userEmail: user['email']?.toString() ?? '',
         );
+
+        return result;
+      } catch (e) {
+        return {
+          'success': false,
+          'message': 'Error memproses respons login: ${e.toString()}',
+        };
       }
     }
+
     return result;
   }
 

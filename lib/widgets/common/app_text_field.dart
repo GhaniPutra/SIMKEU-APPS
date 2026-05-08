@@ -15,6 +15,7 @@ class AppTextField extends StatefulWidget {
   final String?        Function(String?)? validator;
   final int            maxLines;
   final bool           enabled;
+  final ValueChanged<String>? onChanged;
 
   const AppTextField({
     super.key,
@@ -27,6 +28,7 @@ class AppTextField extends StatefulWidget {
     this.validator,
     this.maxLines       = 1,
     this.enabled        = true,
+    this.onChanged,
   });
 
   @override
@@ -57,6 +59,7 @@ class _AppTextFieldState extends State<AppTextField> {
           maxLines     : widget.obscureText ? 1 : widget.maxLines,
           enabled      : widget.enabled,
           validator    : widget.validator,
+          onChanged    : widget.onChanged,
           style: GoogleFonts.poppins(
             color    : AppColors.textPrimary,
             fontSize : 14,

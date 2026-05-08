@@ -7,9 +7,10 @@ import '../core/services/api_service.dart';
 import '../models/sale_model.dart';
 
 class SaleProvider extends ChangeNotifier {
-  List<SaleModel> _sales       = [];
+  List<SaleModel> _sales                = [];
+  List<dynamic>   _salesReportByProduct = [];
   SaleModel?      _lastSale;
-  bool            _isLoading   = false;
+  bool            _isLoading            = false;
   String?         _errorMessage;
 
   // Data dashboard summary
@@ -17,13 +18,14 @@ class SaleProvider extends ChangeNotifier {
   int    _todayCount      = 0;
   double _monthTotal      = 0;
 
-  List<SaleModel> get sales        => _sales;
-  SaleModel?      get lastSale     => _lastSale;
-  bool            get isLoading    => _isLoading;
-  String?         get errorMessage => _errorMessage;
-  double          get todayTotal   => _todayTotal;
-  int             get todayCount   => _todayCount;
-  double          get monthTotal   => _monthTotal;
+  List<SaleModel> get sales                => _sales;
+  List<dynamic>   get salesReportByProduct => _salesReportByProduct;
+  SaleModel?      get lastSale             => _lastSale;
+  bool            get isLoading            => _isLoading;
+  String?         get errorMessage         => _errorMessage;
+  double          get todayTotal           => _todayTotal;
+  int             get todayCount           => _todayCount;
+  double          get monthTotal           => _monthTotal;
 
   // ── Ambil riwayat penjualan ───────────────────────────
   Future<void> fetchSales({String? search, String? metode}) async {
@@ -97,6 +99,72 @@ class SaleProvider extends ChangeNotifier {
 
     notifyListeners();
     return result['message'] as String? ?? 'Gagal membuat transaksi';
+  }
+
+  // ── Ambil laporan penjualan per periode ──────────────
+  Future<void> fetchSalesReportByPeriod({
+    String? startDate,
+    String? endDate,
+  }) async {
+    _isLoading    = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final params = <String, String>{};
+    if (startDate != null) params['start_date'] = startDate;
+    if (endDate != null) params['end_date'] = endDate;
+
+    final result = await ApiService.get(
+      ApiConstants.salesReportPeriod,
+      queryParams: params.isEmpty ? null : params,
+    );
+
+    if (result['success'] == true) {
+      final raw = result['data'];
+      final list = (raw is List) ? raw : (raw is Map ? raw['data'] : []);
+      _salesReportByProduct = list as List<dynamic>;
+    } else {
+      _errorMessage = result['message'] as String? ?? 'Gagal memuat laporan penjualan';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  // ── Ambil laporan penjualan per produk ───────────────
+  Future<void> fetchSalesReportByProduct({
+    String? startDate,
+    String? endDate,
+  }) async {
+    _isLoading    = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final params = <String, String>{};
+    if (startDate != null) params['start_date'] = startDate;
+    if (endDate != null) params['end_date'] = endDate;
+
+    final result = await ApiService.get(
+      ApiConstants.salesReportByProduct,
+      queryParams: params.isEmpty ? null : params,
+    );
+
+    if (result['success'] == true) {
+      final raw = result['data'];
+      final list = (raw is List) ? raw : (raw is Map ? raw['data'] : []);
+      _salesReportByProduct = list as List<dynamic>;
+    } else {
+      _errorMessage = result['message'] as String? ?? 'Gagal memuat laporan penjualan per produk';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  // ── Clear error message ─────────────────────────────
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
   }
 
   double _toDouble(dynamic v) => double.tryParse(v.toString()) ?? 0.0;

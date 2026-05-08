@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'core/constants/app_colors.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
+import 'providers/category_provider.dart';
+import 'providers/employee_provider.dart';
 import 'providers/expense_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/sale_provider.dart';
@@ -25,9 +27,11 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..checkSession()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
+        ChangeNotifierProvider(create: (_) => CategoryProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => SaleProvider()),
         ChangeNotifierProvider(create: (_) => ExpenseProvider()),
+        ChangeNotifierProvider(create: (_) => EmployeeProvider()),
       ],
       child: MaterialApp(
         title: 'SIMKEU POS',
