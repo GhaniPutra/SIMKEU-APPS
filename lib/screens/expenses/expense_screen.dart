@@ -39,7 +39,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
   // ── Modal form tambah/edit ────────────────────────────
   void _showForm({ExpenseModel? existing}) {
-    final nameCtrl  = TextEditingController(text: existing?.name ?? '');
     final amountCtrl = TextEditingController(
         text: existing != null ? existing.amount.toStringAsFixed(0) : '');
     final catCtrl   = TextEditingController(text: existing?.category ?? '');
@@ -47,6 +46,27 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     final dateCtrl  = TextEditingController(
         text: existing?.date ?? DateFormat('yyyy-MM-dd').format(DateTime.now()));
     final formKey   = GlobalKey<FormState>();
+    
+    // ── Daftar kategori yang valid (sesuai backend validation) ──
+    const List<String> categories = [
+      'beli_stok',
+      'gaji',
+      'listrik',
+      'air',
+      'sewa',
+      'transport',
+      'lainnya',
+    ];
+    
+    final Map<String, String> categoryLabels = {
+      'beli_stok': 'Beli Stok',
+      'gaji': 'Gaji',
+      'listrik': 'Listrik',
+      'air': 'Air',
+      'sewa': 'Sewa',
+      'transport': 'Transport',
+      'lainnya': 'Lainnya',
+    };
 
     showModalBottomSheet(
       context      : context,
@@ -84,21 +104,94 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                             color: AppColors.textPrimary,
                             fontSize: 18, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 20),
-                    _FormField(label: 'Nama Pengeluaran', ctrl: nameCtrl,
-                        hint: 'Beli bahan baku...', validator: (v) =>
-                            v!.isEmpty ? 'Wajib diisi' : null),
+                    GestureDetector(
+                      onTap: () async {
+                        DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.tryParse(dateCtrl.text) ?? DateTime.now(),
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                          builder: (context, child) {
+                            return Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: const ColorScheme.light(
+                                  primary: AppColors.primary,
+                                  onPrimary: Colors.white,
+                                  onSurface: AppColors.textPrimary,
+                                ),
+                              ),
+                              child: child!,
+                            );
+                          },
+                        );
+                        if (picked != null) {
+                          dateCtrl.text = DateFormat('yyyy-MM-dd').format(picked);
+                        }
+                      },
+                      child: AbsorbPointer(
+                        child: _FormField(
+                          label: 'Tanggal Pengeluaran', 
+                          ctrl: dateCtrl,
+                          hint: 'YYYY-MM-DD',
+                          validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     _FormField(label: 'Jumlah (Rp)', ctrl: amountCtrl,
                         hint: '50000', keyboard: TextInputType.number,
                         validator: (v) => v!.isEmpty ? 'Wajib diisi' : null),
                     const SizedBox(height: 12),
-                    _FormField(label: 'Kategori', ctrl: catCtrl,
-                        hint: 'operasional, gaji, dll',
-                        validator: (v) => v!.isEmpty ? 'Wajib diisi' : null),
-                    const SizedBox(height: 12),
-                    _FormField(label: 'Tanggal', ctrl: dateCtrl,
-                        hint: 'YYYY-MM-DD',
-                        validator: (v) => v!.isEmpty ? 'Wajib diisi' : null),
+                    // ── Dropdown Kategori (Sesuai Backend Validation) ──
+                    FormField<String>(
+                      initialValue: catCtrl.text.isEmpty ? null : catCtrl.text,
+                      validator: (v) => v == null || v.isEmpty ? 'Pilih kategori' : null,
+                      builder: (field) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Kategori',
+                              style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
+                          const SizedBox(height: 6),
+                          DropdownButtonFormField<String>(
+                            value: catCtrl.text.isEmpty ? null : catCtrl.text,
+                            decoration: InputDecoration(
+                              hintText: 'Pilih kategori',
+                              filled: true,
+                              fillColor: AppColors.surfaceLight,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: AppColors.border, width: 1),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: AppColors.error, width: 1),
+                              ),
+                            ),
+                            items: categories.map((cat) => DropdownMenuItem(
+                              value: cat,
+                              child: Text(categoryLabels[cat] ?? cat, style: GoogleFonts.poppins()),
+                            )).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                catCtrl.text = val;
+                                field.didChange(val);
+                              }
+                            },
+                          ),
+                          if (field.hasError)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(field.errorText ?? '', style: GoogleFonts.poppins(color: AppColors.error, fontSize: 12)),
+                            ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     _FormField(label: 'Keterangan (opsional)', ctrl: descCtrl,
                         hint: 'Detail tambahan...', maxLines: 2),
@@ -110,11 +203,10 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                         if (!formKey.currentState!.validate()) return;
                         ss(() => isLoading = true);
                         final data = {
-                          'name'       : nameCtrl.text.trim(),
-                          'amount'     : double.tryParse(amountCtrl.text) ?? 0,
-                          'category'   : catCtrl.text.trim(),
-                          'date'       : dateCtrl.text.trim(),
-                          'description': descCtrl.text.trim(),
+                          'amount'       : double.tryParse(amountCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
+                          'category'     : catCtrl.text.trim(),
+                          'expense_date' : dateCtrl.text.trim(),
+                          'description'  : descCtrl.text.trim(),
                         };
                         final provider = context.read<ExpenseProvider>();
                         final error = existing == null
@@ -150,7 +242,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Hapus Pengeluaran?',
             style: GoogleFonts.poppins(color: AppColors.textPrimary)),
-        content: Text('${expense.name} akan dihapus permanen.',
+        content: Text('Pengeluaran ${expense.category} (Rp ${expense.amount.toStringAsFixed(0)}) akan dihapus permanen.',
             style: GoogleFonts.poppins(color: AppColors.textSecondary)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context),
@@ -340,10 +432,11 @@ class _ExpenseTile extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(expense.name,
+            Text('${expense.category.replaceAll('_', ' ').toUpperCase()} - Rp ${expense.amount.toStringAsFixed(0)}',
                 style: GoogleFonts.poppins(
                     color: AppColors.textPrimary,
-                    fontSize: 13, fontWeight: FontWeight.w600)),
+                    fontSize: 13, fontWeight: FontWeight.w600),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 2),
             Row(children: [
               Container(

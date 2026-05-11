@@ -46,10 +46,19 @@ class ApiService {
       } else if (response.statusCode == 422) {
         // Validation error
         final data = json.decode(response.body) as Map<String, dynamic>;
+        final errors = data['errors'] as Map<String, dynamic>? ?? {};
+        String errorMessage = 'Data tidak valid';
+        if (errors.isNotEmpty) {
+          final firstKey = errors.keys.first;
+          final firstErrorList = errors[firstKey] as List<dynamic>;
+          if (firstErrorList.isNotEmpty) {
+            errorMessage = firstErrorList.first.toString();
+          }
+        }
         return {
           'success': false,
-          'message': 'Data tidak valid',
-          'errors': data['errors'] ?? {},
+          'message': errorMessage,
+          'errors': errors,
           'statusCode': 422,
         };
       } else if (response.statusCode == 500) {
