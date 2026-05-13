@@ -1,5 +1,5 @@
 // lib/widgets/pos/cart_item_tile.dart
-// Baris item di keranjang POS dengan stepper qty
+// Baris item di keranjang POS dengan stepper qty — light mode premium
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -24,12 +24,18 @@ class CartItemTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin  : const EdgeInsets.only(bottom: 10),
-      padding : const EdgeInsets.all(12),
+      margin  : const EdgeInsets.only(bottom: 12),
+      padding : const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color        : AppColors.surface,
-        borderRadius : BorderRadius.circular(14),
-        border       : Border.all(color: AppColors.border),
+        borderRadius : BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color     : Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset    : const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -37,8 +43,8 @@ class CartItemTile extends StatelessWidget {
           Container(
             padding    : const EdgeInsets.all(10),
             decoration : BoxDecoration(
-              color        : AppColors.primary.withOpacity(0.12),
-              borderRadius : BorderRadius.circular(10),
+              color        : AppColors.pastelIndigo,
+              borderRadius : BorderRadius.circular(12),
             ),
             child: const Icon(
               Icons.inventory_2_rounded,
@@ -74,30 +80,36 @@ class CartItemTile extends StatelessWidget {
             ),
           ),
           // Stepper qty
-          Row(
-            children: [
-              _QtyButton(
-                icon    : Icons.remove,
-                onTap   : onDecrease,
-                color   : AppColors.error,
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Text(
-                  '${item.quantity}',
-                  style: GoogleFonts.poppins(
-                    color      : AppColors.textPrimary,
-                    fontSize   : 14,
-                    fontWeight : FontWeight.w700,
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surfaceLight,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                _QtyButton(
+                  icon    : Icons.remove,
+                  onTap   : onDecrease,
+                  color   : AppColors.error,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(
+                    '${item.quantity}',
+                    style: GoogleFonts.poppins(
+                      color      : AppColors.textPrimary,
+                      fontSize   : 14,
+                      fontWeight : FontWeight.w700,
+                    ),
                   ),
                 ),
-              ),
-              _QtyButton(
-                icon    : Icons.add,
-                onTap   : onIncrease,
-                color   : AppColors.primary,
-              ),
-            ],
+                _QtyButton(
+                  icon    : Icons.add,
+                  onTap   : onIncrease,
+                  color   : AppColors.primary,
+                ),
+              ],
+            ),
           ),
           const SizedBox(width: 10),
           // Subtotal
@@ -107,7 +119,7 @@ class CartItemTile extends StatelessWidget {
               Text(
                 CurrencyFormatter.format(item.subtotal),
                 style: GoogleFonts.poppins(
-                  color      : AppColors.secondary,
+                  color      : AppColors.primary,
                   fontSize   : 12,
                   fontWeight : FontWeight.w700,
                 ),
@@ -115,10 +127,17 @@ class CartItemTile extends StatelessWidget {
               const SizedBox(height: 4),
               GestureDetector(
                 onTap : onRemove,
-                child : const Icon(
-                  Icons.delete_outline,
-                  color : AppColors.error,
-                  size  : 18,
+                child : Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppColors.pastelRed,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(
+                    Icons.delete_outline,
+                    color : AppColors.error,
+                    size  : 16,
+                  ),
                 ),
               ),
             ],
@@ -145,10 +164,10 @@ class _QtyButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding    : const EdgeInsets.all(4),
+        padding    : const EdgeInsets.all(6),
         decoration : BoxDecoration(
-          color        : color.withOpacity(0.15),
-          borderRadius : BorderRadius.circular(6),
+          color        : color.withOpacity(0.1),
+          borderRadius : BorderRadius.circular(8),
         ),
         child: Icon(icon, color: color, size: 16),
       ),

@@ -1,5 +1,5 @@
 // lib/widgets/common/app_text_field.dart
-// Input field reusable dengan styling dark mode premium
+// Input field reusable dengan styling light mode premium
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -105,6 +105,10 @@ class _AppTextFieldState extends State<AppTextField> {
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide  : const BorderSide(color: AppColors.error, width: 1.5),
+            ),
+            errorStyle: GoogleFonts.poppins(
+              color: AppColors.error,
+              fontSize: 11,
             ),
           ),
         ),

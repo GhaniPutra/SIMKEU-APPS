@@ -1,5 +1,5 @@
 // lib/widgets/common/error_widget.dart
-// Widget tampilan error dengan tombol retry
+// Widget tampilan error dengan tombol retry — light mode
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,8 +25,8 @@ class AppErrorWidget extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color  : AppColors.error.withOpacity(0.1),
+              decoration: const BoxDecoration(
+                color  : AppColors.pastelRed,
                 shape  : BoxShape.circle,
               ),
               child: const Icon(
@@ -61,6 +61,13 @@ class AppErrorWidget extends StatelessWidget {
                 label: Text(
                   'Coba Lagi',
                   style: GoogleFonts.poppins(color: AppColors.primary),
+                ),
+                style: TextButton.styleFrom(
+                  backgroundColor: AppColors.pastelIndigo,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ],

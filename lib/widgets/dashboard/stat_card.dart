@@ -1,5 +1,5 @@
 // lib/widgets/dashboard/stat_card.dart
-// Kartu statistik KPI untuk dashboard
+// Kartu statistik KPI untuk dashboard — light mode premium
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -19,7 +19,7 @@ class StatCard extends StatelessWidget {
     required this.value,
     required this.icon,
     this.iconColor = AppColors.primary,
-    this.iconBg    = const Color(0xFF2A2D4A),
+    this.iconBg    = AppColors.pastelIndigo,
     this.subtitle,
   });
 
@@ -29,13 +29,17 @@ class StatCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color        : AppColors.surface,
-        borderRadius : BorderRadius.circular(16),
-        border       : Border.all(color: AppColors.border, width: 1),
+        borderRadius : BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color  : Colors.black.withOpacity(0.2),
-            blurRadius: 8,
-            offset : const Offset(0, 2),
+            color  : Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset : const Offset(0, 4),
+          ),
+          BoxShadow(
+            color  : Colors.black.withOpacity(0.02),
+            blurRadius: 4,
+            offset : const Offset(0, 1),
           ),
         ],
       ),

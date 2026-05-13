@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
@@ -23,6 +24,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Status bar terang (ikon gelap) untuk light mode
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+    ));
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..checkSession()),
@@ -37,24 +45,37 @@ class MyApp extends StatelessWidget {
         title: 'SIMKEU POS',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          brightness: Brightness.dark,
+          brightness: Brightness.light,
           scaffoldBackgroundColor: AppColors.background,
           primaryColor: AppColors.primary,
-          colorScheme: const ColorScheme.dark(
+          colorScheme: const ColorScheme.light(
             primary: AppColors.primary,
             secondary: AppColors.secondary,
             surface: AppColors.surface,
             error: AppColors.error,
           ),
-          textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+          textTheme: GoogleFonts.poppinsTextTheme(ThemeData.light().textTheme),
           appBarTheme: AppBarTheme(
-            backgroundColor: AppColors.background,
+            backgroundColor: AppColors.surface,
             elevation: 0,
+            scrolledUnderElevation: 0.5,
+            surfaceTintColor: Colors.transparent,
             iconTheme: const IconThemeData(color: AppColors.textPrimary),
             titleTextStyle: GoogleFonts.poppins(
               color: AppColors.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.w600,
+            ),
+          ),
+          bottomSheetTheme: const BottomSheetThemeData(
+            backgroundColor: AppColors.surface,
+            surfaceTintColor: Colors.transparent,
+          ),
+          dialogTheme: DialogThemeData(
+            backgroundColor: AppColors.surface,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
           ),
         ),
