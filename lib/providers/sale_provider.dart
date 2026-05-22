@@ -58,14 +58,66 @@ class SaleProvider extends ChangeNotifier {
 
   // ── Ambil data dashboard ──────────────────────────────
   Future<void> fetchDashboard() async {
+    // Coba fetch dari API endpoint dashboard
     final result = await ApiService.get(ApiConstants.dashboard);
+    
     if (result['success'] == true) {
       final data = result['data'] as Map<String, dynamic>? ?? {};
-      _todayTotal  = _toDouble(data['today_sales']  ?? data['penjualan_hari_ini'] ?? 0);
-      _todayCount  = (data['today_transactions'] ?? data['transaksi_hari_ini'] ?? 0) as int;
-      _monthTotal  = _toDouble(data['month_sales']  ?? data['penjualan_bulan'] ?? 0);
-      notifyListeners();
+      
+      // Parse berbagai format field yang mungkin dari backend
+      final todayFromApi = _toDouble(data['today_sales'] ?? data['penjualan_hari_ini'] ?? 0);
+      final countFromApi = (data['today_transactions'] ?? data['transaksi_hari_ini'] ?? data['count'] ?? 0) as int;
+      final monthFromApi = _toDouble(data['month_sales'] ?? data['penjualan_bulan'] ?? data['bulan'] ?? 0);
+      
+      // Jika API mengembalikan data valid (bukan 0), gunakan
+      if (todayFromApi > 0 || countFromApi > 0 || monthFromApi > 0) {
+        _todayTotal = todayFromApi;
+        _todayCount = countFromApi;
+        _monthTotal = monthFromApi;
+        notifyListeners();
+        return;
+      }
     }
+    
+    // FALLBACK: Jika API gagal atau tidak ada data, hitung dari sales list
+    await _calculateDashboardFromSales();
+  }
+
+  // ── Hitung dashboard dari sales data (fallback) ────────
+  Future<void> _calculateDashboardFromSales() async {
+    // Pastikan kita punya data sales terbaru
+    if (_sales.isEmpty) {
+      await fetchSales();
+    }
+
+    final today = DateTime.now();
+    final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    
+    double todaySum = 0;
+    int todayCount = 0;
+    double monthSum = 0;
+
+    for (final sale in _sales) {
+      final saleDate = sale.createdAt;
+      double amount = sale.totalAmount;
+
+      // Hitung penjualan hari ini
+      if (saleDate.startsWith(todayStr)) {
+        todaySum += amount;
+        todayCount += 1;
+      }
+
+      // Hitung penjualan bulan ini
+      final monthStr = '${today.year}-${today.month.toString().padLeft(2, '0')}';
+      if (saleDate.startsWith(monthStr)) {
+        monthSum += amount;
+      }
+    }
+
+    _todayTotal = todaySum;
+    _todayCount = todayCount;
+    _monthTotal = monthSum;
+    notifyListeners();
   }
 
   // ── Buat transaksi penjualan baru ─────────────────────

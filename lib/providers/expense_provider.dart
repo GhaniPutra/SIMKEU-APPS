@@ -12,12 +12,14 @@ class ExpenseProvider extends ChangeNotifier {
   bool               _isLoading             = false;
   String?            _errorMessage;
   double             _totalMonth            = 0;
+  double             _totalToday            = 0;
 
   List<ExpenseModel> get expenses                => _expenses;
   List<dynamic>      get expensesReportByCategory => _expensesReportByCategory;
   bool               get isLoading               => _isLoading;
   String?            get errorMessage           => _errorMessage;
   double             get totalMonth             => _totalMonth;
+  double             get totalToday             => _totalToday;
 
   // ── Ambil daftar pengeluaran ──────────────────────────
   Future<void> fetchExpenses({String? bulan, String? tahun}) async {
@@ -40,13 +42,40 @@ class ExpenseProvider extends ChangeNotifier {
       _expenses = list
           .map((e) => ExpenseModel.fromJson(e as Map<String, dynamic>))
           .toList();
-      _totalMonth = _expenses.fold(0.0, (s, e) => s + e.amount);
+      _calculateExpenseTotals();
     } else {
       _errorMessage = result['message'] as String? ?? 'Gagal memuat pengeluaran';
     }
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  // ── Hitung total pengeluaran hari ini dan bulan ini ──
+  void _calculateExpenseTotals() {
+    final today = DateTime.now();
+    final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final monthStr = '${today.year}-${today.month.toString().padLeft(2, '0')}';
+
+    double todaySum = 0;
+    double monthSum = 0;
+
+    for (final expense in _expenses) {
+      final expenseDate = expense.date.isEmpty ? expense.createdAt : expense.date;
+
+      // Hitung pengeluaran hari ini
+      if (expenseDate.startsWith(todayStr)) {
+        todaySum += expense.amount;
+      }
+
+      // Hitung pengeluaran bulan ini
+      if (expenseDate.startsWith(monthStr)) {
+        monthSum += expense.amount;
+      }
+    }
+
+    _totalToday = todaySum;
+    _totalMonth = monthSum;
   }
 
   // ── Tambah pengeluaran baru ───────────────────────────
@@ -74,7 +103,7 @@ class ExpenseProvider extends ChangeNotifier {
     final result = await ApiService.delete(ApiConstants.expenseDetail(id));
     if (result['success'] == true) {
       _expenses.removeWhere((e) => e.id == id);
-      _totalMonth = _expenses.fold(0.0, (s, e) => s + e.amount);
+      _calculateExpenseTotals();
       notifyListeners();
       return null;
     }

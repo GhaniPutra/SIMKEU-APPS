@@ -67,16 +67,29 @@ class ReceiptScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 if (sale.items.isNotEmpty) ...[
                   Align(alignment: Alignment.centerLeft,
-                    child: Text('Detail Item', style: GoogleFonts.poppins(
+                    child: Text('Barang Terjual', style: GoogleFonts.poppins(
                       color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600))),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   ...sale.items.map((item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Row(children: [
-                      Expanded(child: Text('${item.productName} x${item.quantity}',
-                        style: GoogleFonts.poppins(color: AppColors.textPrimary, fontSize: 13))),
-                      Text(CurrencyFormatter.format(item.subtotal),
-                        style: GoogleFonts.poppins(color: AppColors.textPrimary, fontSize: 13)),
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Expanded(
+                          child: Text(item.productName,
+                            style: GoogleFonts.poppins(
+                              color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                            maxLines: 2, overflow: TextOverflow.ellipsis)),
+                        const SizedBox(width: 8),
+                        Text('x${item.quantity}',
+                          style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 12)),
+                      ]),
+                      const SizedBox(height: 4),
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                        Text(CurrencyFormatter.format(item.price),
+                          style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 11)),
+                        Text(CurrencyFormatter.format(item.subtotal),
+                          style: GoogleFonts.poppins(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+                      ]),
                     ]))),
                   const Divider(color: AppColors.border),
                 ],
