@@ -63,14 +63,17 @@ class SaleProvider extends ChangeNotifier {
     
     if (result['success'] == true) {
       final data = result['data'] as Map<String, dynamic>? ?? {};
+      final summary = data['summary'] as Map<String, dynamic>? ?? {};
       
       // Parse berbagai format field yang mungkin dari backend
-      final todayFromApi = _toDouble(data['today_sales'] ?? data['penjualan_hari_ini'] ?? 0);
-      final countFromApi = (data['today_transactions'] ?? data['transaksi_hari_ini'] ?? data['count'] ?? 0) as int;
-      final monthFromApi = _toDouble(data['month_sales'] ?? data['penjualan_bulan'] ?? data['bulan'] ?? 0);
+      final todayFromApi = _toDouble(summary['revenue_today'] ?? data['today_sales'] ?? data['penjualan_hari_ini'] ?? 0);
+      final countFromApi = _toInt(summary['transactions_today'] ?? data['today_transactions'] ?? data['transaksi_hari_ini'] ?? data['count'] ?? 0);
+      final monthFromApi = _toDouble(summary['revenue_month'] ?? data['month_sales'] ?? data['penjualan_bulan'] ?? data['bulan'] ?? 0);
       
-      // Jika API mengembalikan data valid (bukan 0), gunakan
-      if (todayFromApi > 0 || countFromApi > 0 || monthFromApi > 0) {
+      // Gunakan data dari API hanya jika ada data penjualan/transaksi hari ini yang valid (> 0).
+      // Jika data hari ini bernilai 0, kita lebih memilih melakukan kalkulasi lokal dari sales history
+      // agar terhindar dari ketidakcocokan zona waktu (timezone mismatch) antara server dan client.
+      if ((todayFromApi > 0 || countFromApi > 0) && summary.isNotEmpty) {
         _todayTotal = todayFromApi;
         _todayCount = countFromApi;
         _monthTotal = monthFromApi;
@@ -79,16 +82,14 @@ class SaleProvider extends ChangeNotifier {
       }
     }
     
-    // FALLBACK: Jika API gagal atau tidak ada data, hitung dari sales list
+    // FALLBACK: Jika API gagal atau tidak ada data hari ini yang valid (>0), hitung dari sales list
     await _calculateDashboardFromSales();
   }
 
   // ── Hitung dashboard dari sales data (fallback) ────────
   Future<void> _calculateDashboardFromSales() async {
-    // Pastikan kita punya data sales terbaru
-    if (_sales.isEmpty) {
-      await fetchSales();
-    }
+    // Selalu ambil riwayat penjualan terbaru agar data dihitung dari record paling up-to-date
+    await fetchSales();
 
     final today = DateTime.now();
     final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
@@ -101,16 +102,31 @@ class SaleProvider extends ChangeNotifier {
       final saleDate = sale.createdAt;
       double amount = sale.totalAmount;
 
-      // Hitung penjualan hari ini
-      if (saleDate.startsWith(todayStr)) {
-        todaySum += amount;
-        todayCount += 1;
-      }
+      try {
+        final parsedDate = DateTime.parse(saleDate).toLocal();
+        final saleDateStr = '${parsedDate.year}-${parsedDate.month.toString().padLeft(2, '0')}-${parsedDate.day.toString().padLeft(2, '0')}';
+        
+        if (saleDateStr == todayStr) {
+          todaySum += amount;
+          todayCount += 1;
+        }
+        
+        final monthStr = '${today.year}-${today.month.toString().padLeft(2, '0')}';
+        final saleMonthStr = '${parsedDate.year}-${parsedDate.month.toString().padLeft(2, '0')}';
+        if (saleMonthStr == monthStr) {
+          monthSum += amount;
+        }
+      } catch (_) {
+        // Fallback jika gagal parsing
+        if (saleDate.startsWith(todayStr)) {
+          todaySum += amount;
+          todayCount += 1;
+        }
 
-      // Hitung penjualan bulan ini
-      final monthStr = '${today.year}-${today.month.toString().padLeft(2, '0')}';
-      if (saleDate.startsWith(monthStr)) {
-        monthSum += amount;
+        final monthStr = '${today.year}-${today.month.toString().padLeft(2, '0')}';
+        if (saleDate.startsWith(monthStr)) {
+          monthSum += amount;
+        }
       }
     }
 
@@ -220,4 +236,10 @@ class SaleProvider extends ChangeNotifier {
   }
 
   double _toDouble(dynamic v) => double.tryParse(v.toString()) ?? 0.0;
+
+  int _toInt(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString()) ?? double.tryParse(v.toString())?.toInt() ?? 0;
+  }
 }

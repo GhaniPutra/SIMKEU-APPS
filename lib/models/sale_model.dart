@@ -25,7 +25,7 @@ class SaleModel {
   factory SaleModel.fromJson(Map<String, dynamic> json) {
     double d(dynamic v) => double.tryParse(v.toString()) ?? 0.0;
 
-    final rawItems = json['items'] as List<dynamic>? ?? [];
+    final rawItems = (json['sale_items'] ?? json['items']) as List<dynamic>? ?? [];
     return SaleModel(
       id            : json['id'] as int,
       invoiceNumber : json['invoice_number'] as String? ?? '#${json['id']}',

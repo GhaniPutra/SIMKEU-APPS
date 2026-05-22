@@ -22,7 +22,7 @@ class SaleItemModel {
       productId   : json['product_id'] as int,
       productName : (json['product'] as Map<String, dynamic>?)?['name'] as String? ?? '-',
       quantity    : (json['quantity'] as num).toInt(),
-      price       : d(json['price']),
+      price       : d(json['price'] ?? json['price_at_sale']),
       subtotal    : d(json['subtotal']),
     );
   }
