@@ -9,6 +9,7 @@ import '../../providers/product_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../widgets/common/loading_widget.dart';
 import '../../widgets/common/error_widget.dart';
+import '../../widgets/common/custom_toast.dart';
 import '../../widgets/pos/product_card.dart';
 import 'cart_screen.dart';
 
@@ -139,12 +140,11 @@ class _POSScreenState extends State<POSScreen> {
                     final qty = cartItem.isEmpty ? 0 : cartItem.first.quantity;
                     return ProductCard(product: product, cartQty: qty, onTap: () {
                       cartProv.addProduct(product);
-                      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(SnackBar(
-                        content: Text('${product.name} ditambahkan', style: GoogleFonts.poppins(fontSize: 13, color: Colors.white)),
-                        backgroundColor: AppColors.primary,
-                        behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 1),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ));
+                      CustomToast.showSuccess(
+                        context,
+                        '${product.name} ditambahkan',
+                        duration: const Duration(seconds: 1, milliseconds: 500),
+                      );
                     });
                   }),
       ),

@@ -35,7 +35,9 @@ class SaleProvider extends ChangeNotifier {
 
     final params = <String, String>{};
     if (search != null && search.isNotEmpty) params['search'] = search;
-    if (metode != null && metode.isNotEmpty) params['metode'] = metode;
+    if (metode != null && metode.isNotEmpty) {
+      params['metode'] = metode == 'ewallet' ? 'qris' : metode;
+    }
 
     final result = await ApiService.get(
       ApiConstants.sales,
@@ -146,7 +148,7 @@ class SaleProvider extends ChangeNotifier {
     notifyListeners();
 
     final body = {
-      'payment_method' : paymentMethod,
+      'payment_method' : paymentMethod == 'ewallet' ? 'qris' : paymentMethod,
       'items'          : items,
       if (notes != null && notes.isNotEmpty) 'notes': notes,
     };

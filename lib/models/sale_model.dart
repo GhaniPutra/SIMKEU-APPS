@@ -30,7 +30,7 @@ class SaleModel {
       id            : json['id'] as int,
       invoiceNumber : json['invoice_number'] as String? ?? '#${json['id']}',
       totalAmount   : d(json['total_amount'] ?? json['total'] ?? 0),
-      paymentMethod : json['payment_method'] as String? ?? 'tunai',
+      paymentMethod : (json['payment_method'] as String? ?? 'tunai') == 'qris' ? 'ewallet' : (json['payment_method'] as String? ?? 'tunai'),
       notes         : json['notes'] as String?,
       createdAt     : json['created_at'] as String? ?? '',
       items         : rawItems

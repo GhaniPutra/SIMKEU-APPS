@@ -12,6 +12,7 @@ import '../../models/expense_model.dart';
 import '../../widgets/common/loading_widget.dart';
 import '../../widgets/common/error_widget.dart';
 import '../../widgets/common/app_button.dart';
+import '../../widgets/common/custom_toast.dart';
 
 class ExpenseScreen extends StatefulWidget {
   const ExpenseScreen({super.key});
@@ -150,10 +151,16 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                       ? await provider.addExpense(data) : await provider.updateExpense(existing.id, data);
                     if (!ctx.mounted) return;
                     Navigator.pop(ctx);
+                    if (!mounted) return;
                     if (error != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text(error, style: GoogleFonts.poppins(color: Colors.white)),
-                        backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating));
+                      CustomToast.showError(context, error);
+                    } else {
+                      CustomToast.showSuccess(
+                        context,
+                        existing == null
+                            ? 'Pengeluaran berhasil ditambahkan'
+                            : 'Pengeluaran berhasil diperbarui',
+                      );
                     }
                   },
                 )),
@@ -179,10 +186,10 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         TextButton(onPressed: () async {
           Navigator.pop(context);
           final error = await context.read<ExpenseProvider>().deleteExpense(expense.id);
-          if (error != null && mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(error, style: GoogleFonts.poppins(color: Colors.white)),
-              backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating));
+          if (error != null) {
+            if (mounted) CustomToast.showError(context, error);
+          } else {
+            if (mounted) CustomToast.showSuccess(context, 'Pengeluaran berhasil dihapus');
           }
         }, child: Text('Hapus', style: GoogleFonts.poppins(color: AppColors.error, fontWeight: FontWeight.w600))),
       ],
