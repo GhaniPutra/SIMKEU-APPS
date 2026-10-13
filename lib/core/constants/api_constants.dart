@@ -3,7 +3,7 @@
 
 class ApiConstants {
   // Base URL backend Laravel — ganti jika IP berubah
-  static const String baseUrl = 'http://10.167.38.210:8000/api';
+  static const String baseUrl = 'http://10.179.184.35:8000/api';
 
   // ── Auth ──────────────────────────────────────────────
   static const String register    = '$baseUrl/register';
@@ -47,4 +47,15 @@ class ApiConstants {
   static const String employees                 = '$baseUrl/employees';
   static String employeeDetail(int id)          => '$baseUrl/employees/$id';
   static String employeeSales(int id)           => '$baseUrl/employees/$id/sales';
+
+  // ── Stock allocation (alokasi stok) ───────────────────
+  // Backend web SIMKEU memiliki endpoint review alokasi di routes/web.php,
+  // tetapi kontrak API mobile belum tersedia di routes/api.php. UI dibuat
+  // supaya tidak mengarang struktur JSON baru dan menampilkan pesan jelas
+  // ketika endpoint belum ada.
+  static const String pendingStockAllocations = '$baseUrl/stock-allocations/pending';
+  static String employeeStockAllocations(int employeeId) =>
+      '$baseUrl/employees/$employeeId/stock/allocations';
+  static String reviewStockAllocation(int allocationId) =>
+      '$baseUrl/stock-allocations/$allocationId/review';
 }

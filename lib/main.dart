@@ -11,6 +11,7 @@ import 'providers/employee_provider.dart';
 import 'providers/expense_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/sale_provider.dart';
+import 'providers/stock_allocation_provider.dart';
 
 import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
@@ -40,6 +41,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SaleProvider()),
         ChangeNotifierProvider(create: (_) => ExpenseProvider()),
         ChangeNotifierProvider(create: (_) => EmployeeProvider()),
+        ChangeNotifierProvider(create: (_) => StockAllocationProvider()),
       ],
       child: MaterialApp(
         title: 'SIMKEU POS',

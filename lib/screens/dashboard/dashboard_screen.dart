@@ -15,6 +15,7 @@ import '../auth/login_screen.dart';
 import '../pos/pos_screen.dart';
 import '../sales/sales_history_screen.dart';
 import '../expenses/expense_screen.dart';
+import '../stock/stock_allocation_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -75,7 +76,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final pages = [
       _HomeTab(isRefreshing: _isRefreshing, onRefresh: _loadData,
         onSwitchToPos: () => setState(() => _selectedIndex = 1),
-        onSwitchToSales: () => setState(() => _selectedIndex = 2)),
+        onSwitchToSales: () => setState(() => _selectedIndex = 2),
+        onOpenStockAllocations: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const StockAllocationScreen()),
+        )),
       const POSScreen(),
       const SalesHistoryScreen(),
       const ExpenseScreen(),
@@ -120,9 +124,11 @@ class _HomeTab extends StatelessWidget {
   final VoidCallback onRefresh;
   final VoidCallback onSwitchToPos;
   final VoidCallback onSwitchToSales;
+  final VoidCallback onOpenStockAllocations;
 
   const _HomeTab({required this.isRefreshing, required this.onRefresh,
-    required this.onSwitchToPos, required this.onSwitchToSales});
+    required this.onSwitchToPos, required this.onSwitchToSales,
+    required this.onOpenStockAllocations});
 
   @override
   Widget build(BuildContext context) {
@@ -164,36 +170,75 @@ class _HomeTab extends StatelessWidget {
           // Quick Action POS
           SliverToBoxAdapter(child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-            child: GestureDetector(
-              onTap: onSwitchToPos,
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 20, offset: const Offset(0, 6))],
-                ),
-                child: Row(children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: onSwitchToPos,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.3),
+                        blurRadius: 20, offset: const Offset(0, 6))],
                     ),
-                    child: const Icon(Icons.point_of_sale_rounded, color: Colors.white, size: 28),
+                    child: Row(children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.point_of_sale_rounded, color: Colors.white, size: 28),
+                      ),
+                      const SizedBox(width: 16),
+                      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Mulai Transaksi POS', style: GoogleFonts.poppins(
+                          color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                        Text('Tap untuk membuka kasir', style: GoogleFonts.poppins(
+                          color: Colors.white70, fontSize: 12)),
+                      ]),
+                      const Spacer(),
+                      const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 18),
+                    ]),
                   ),
-                  const SizedBox(width: 16),
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Mulai Transaksi POS', style: GoogleFonts.poppins(
-                      color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-                    Text('Tap untuk membuka kasir', style: GoogleFonts.poppins(
-                      color: Colors.white70, fontSize: 12)),
-                  ]),
-                  const Spacer(),
-                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 18),
-                ]),
-              ),
+                ),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: onOpenStockAllocations,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.pastelOrange,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.inventory_2_rounded, color: AppColors.warning, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Alokasi Stok Pending', style: GoogleFonts.poppins(
+                              color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+                            Text('Review accept / decline stok dari backend', style: GoogleFonts.poppins(
+                              color: AppColors.textSecondary, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+                    ]),
+                  ),
+                ),
+              ],
             ),
           )),
 
