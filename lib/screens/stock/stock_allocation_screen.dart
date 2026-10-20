@@ -7,7 +7,9 @@ import '../../providers/auth_provider.dart';
 import '../../providers/stock_allocation_provider.dart';
 
 class StockAllocationScreen extends StatefulWidget {
-  const StockAllocationScreen({super.key});
+  final VoidCallback? onOpenPos;
+
+  const StockAllocationScreen({super.key, this.onOpenPos});
 
   @override
   State<StockAllocationScreen> createState() => _StockAllocationScreenState();
@@ -25,16 +27,18 @@ class _StockAllocationScreenState extends State<StockAllocationScreen> {
     final employeeId = auth.currentUser?.id ?? 0;
     if (employeeId > 0) {
       await context.read<StockAllocationProvider>().fetchPendingAllocations(
-        employeeId: employeeId,
-      );
+            employeeId: employeeId,
+          );
     }
   }
 
   Future<void> _acceptAllocation(StockAllocationModel allocation) async {
     final provider = context.read<StockAllocationProvider>();
+    final employeeId = context.read<AuthProvider>().currentUser?.id ?? 0;
     final result = await provider.reviewAllocation(
       allocationId: allocation.id,
       decision: 'accept',
+      employeeId: employeeId,
       confirmedQuantity: allocation.requestedQuantity,
     );
 
@@ -42,14 +46,15 @@ class _StockAllocationScreenState extends State<StockAllocationScreen> {
     if (result['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Alokasi stok diterima.'),
+          content: Text('Jumlah stok dikonfirmasi.'),
           backgroundColor: AppColors.success,
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text((result['message'] as String?) ?? 'Gagal menerima alokasi.'),
+          content:
+              Text((result['message'] as String?) ?? 'Gagal menerima alokasi.'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -63,11 +68,16 @@ class _StockAllocationScreenState extends State<StockAllocationScreen> {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Decline alokasi stok'),
+        title: const Text('Laporkan selisih stok'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Text(
+                'Isi jumlah yang benar-benar diterima. Pemilik akan memeriksa sebelum stok diubah.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: actualController,
                 keyboardType: TextInputType.number,
@@ -83,7 +93,7 @@ class _StockAllocationScreenState extends State<StockAllocationScreen> {
                 maxLines: 4,
                 decoration: const InputDecoration(
                   labelText: 'Alasan',
-                  hintText: 'Tulis alasan selisih / ketidaksesuaian',
+                  hintText: 'Contoh: baru menerima 8 dari 10 kopi',
                 ),
               ),
             ],
@@ -110,7 +120,8 @@ class _StockAllocationScreenState extends State<StockAllocationScreen> {
               if (reason.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Alasan wajib diisi saat decline.'),
+                    content:
+                        Text('Alasan wajib diisi saat melaporkan selisih.'),
                     backgroundColor: AppColors.error,
                   ),
                 );
@@ -130,9 +141,11 @@ class _StockAllocationScreenState extends State<StockAllocationScreen> {
     if (!mounted || result == null) return;
 
     final provider = context.read<StockAllocationProvider>();
+    final employeeId = context.read<AuthProvider>().currentUser?.id ?? 0;
     final reviewResult = await provider.reviewAllocation(
       allocationId: allocation.id,
       decision: 'decline',
+      employeeId: employeeId,
       confirmedQuantity: allocation.requestedQuantity,
       actualReceivedQuantity: result['actual_received_quantity'] as int?,
       declineReason: result['decline_reason'] as String?,
@@ -142,14 +155,17 @@ class _StockAllocationScreenState extends State<StockAllocationScreen> {
     if (reviewResult['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Alokasi stok ditolak.'),
+          content: Text('Laporan selisih dikirim ke pemilik.'),
           backgroundColor: AppColors.warning,
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text((reviewResult['message'] as String?) ?? 'Gagal menolak alokasi.'),
+          content: Text(
+            (reviewResult['message'] as String?) ??
+                'Gagal mengirim laporan selisih.',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -162,62 +178,113 @@ class _StockAllocationScreenState extends State<StockAllocationScreen> {
       appBar: AppBar(
         title: const Text('Alokasi Stok'),
       ),
-      body: Consumer<StockAllocationProvider>(
-        builder: (context, provider, child) {
-          if (provider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (provider.errorMessage != null && provider.allocations.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.inventory_2_outlined, size: 56, color: AppColors.textHint),
-                    const SizedBox(height: 16),
-                    Text(
-                      provider.errorMessage!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.textSecondary),
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.pastelIndigo,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.12)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Catat penjualan agar stok selalu cocok',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Penjualan di POS otomatis mengurangi stok. Jika ada penjualan yang belum dicatat, masukkan lewat POS; jangan laporkan sebagai kekurangan barang.',
+                  style:
+                      TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+                if (widget.onOpenPos != null) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        final openPos = widget.onOpenPos;
+                        Navigator.of(context).pop();
+                        openPos?.call();
+                      },
+                      icon: const Icon(Icons.point_of_sale_rounded, size: 18),
+                      label: const Text('Buka POS'),
                     ),
-                  ],
-                ),
-              ),
-            );
-          }
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Expanded(
+            child: Consumer<StockAllocationProvider>(
+              builder: (context, provider, child) {
+                if (provider.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          if (provider.allocations.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'Tidak ada alokasi stok pending.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
-              ),
-            );
-          }
+                if (provider.errorMessage != null &&
+                    provider.allocations.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.inventory_2_outlined,
+                              size: 56, color: AppColors.textHint),
+                          const SizedBox(height: 16),
+                          Text(
+                            provider.errorMessage!,
+                            textAlign: TextAlign.center,
+                            style:
+                                const TextStyle(color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
 
-          return RefreshIndicator(
-            onRefresh: _loadAllocations,
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: provider.allocations.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final allocation = provider.allocations[index];
-                return _AllocationCard(
-                  allocation: allocation,
-                  onAccept: () => _acceptAllocation(allocation),
-                  onDecline: () => _declineAllocation(allocation),
+                if (provider.allocations.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text(
+                        'Tidak ada alokasi stok pending.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: _loadAllocations,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: provider.allocations.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final allocation = provider.allocations[index];
+                      return _AllocationCard(
+                        allocation: allocation,
+                        onAccept: () => _acceptAllocation(allocation),
+                        onDecline: () => _declineAllocation(allocation),
+                      );
+                    },
+                  ),
                 );
               },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -259,7 +326,8 @@ class _AllocationCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: AppColors.pastelOrange,
                   borderRadius: BorderRadius.circular(999),
@@ -277,15 +345,17 @@ class _AllocationCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Jumlah diminta: ${allocation.requestedQuantity} ${allocation.productUnit}',
+            'Jumlah dialokasikan: ${allocation.requestedQuantity} ${allocation.productUnit}',
             style: const TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 4),
           Text(
-            'Status stok: belum masuk stok aktif; pending tidak boleh dijual.',
-            style: TextStyle(color: AppColors.textSecondary.withOpacity(0.85), fontSize: 12),
+            'Belum masuk stok aktif. Konfirmasikan setelah menghitung barang fisik.',
+            style: TextStyle(
+                color: AppColors.textSecondary.withOpacity(0.85), fontSize: 12),
           ),
-          if (allocation.declineReason != null && allocation.declineReason!.trim().isNotEmpty) ...[
+          if (allocation.declineReason != null &&
+              allocation.declineReason!.trim().isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
               'Catatan sebelumnya: ${allocation.declineReason}',
@@ -302,7 +372,7 @@ class _AllocationCard extends StatelessWidget {
                     backgroundColor: AppColors.success,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  child: const Text('Accept'),
+                  child: const Text('Jumlah sesuai'),
                 ),
               ),
               const SizedBox(width: 12),
@@ -313,7 +383,7 @@ class _AllocationCard extends StatelessWidget {
                     backgroundColor: AppColors.error,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  child: const Text('Decline'),
+                  child: const Text('Laporkan selisih'),
                 ),
               ),
             ],

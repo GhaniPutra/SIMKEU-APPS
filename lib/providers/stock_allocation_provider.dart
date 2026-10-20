@@ -64,6 +64,7 @@ class StockAllocationProvider extends ChangeNotifier {
   Future<Map<String, dynamic>> reviewAllocation({
     required int allocationId,
     required String decision,
+    int employeeId = 0,
     int? confirmedQuantity,
     int? actualReceivedQuantity,
     String? declineReason,
@@ -77,7 +78,7 @@ class StockAllocationProvider extends ChangeNotifier {
         (actualReceivedQuantity == null || actualReceivedQuantity < 0)) {
       return {
         'success': false,
-        'message': 'Jumlah aktual harus diisi saat menolak alokasi.',
+        'message': 'Jumlah fisik harus diisi saat melaporkan selisih.',
       };
     }
 
@@ -85,7 +86,7 @@ class StockAllocationProvider extends ChangeNotifier {
         (declineReason == null || declineReason.trim().isEmpty)) {
       return {
         'success': false,
-        'message': 'Alasan penolakan wajib diisi.',
+        'message': 'Alasan selisih wajib diisi.',
       };
     }
 
@@ -108,7 +109,7 @@ class StockAllocationProvider extends ChangeNotifier {
       'decline_reason': declineReason?.trim(),
       'actual_received_quantity': actualReceivedQuantity,
       'difference_quantity': actualReceivedQuantity != null && confirmedQuantity != null
-          ? confirmedQuantity - actualReceivedQuantity
+          ? actualReceivedQuantity - confirmedQuantity
           : null,
     };
 
@@ -121,7 +122,7 @@ class StockAllocationProvider extends ChangeNotifier {
       for (final endpoint in endpoints) {
         final result = await ApiService.post(endpoint, payload);
         if (result['success'] == true) {
-          await fetchPendingAllocations();
+          await fetchPendingAllocations(employeeId: employeeId);
           _isSubmitting = false;
           notifyListeners();
           return result;

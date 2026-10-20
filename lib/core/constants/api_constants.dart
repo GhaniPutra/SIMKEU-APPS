@@ -3,7 +3,7 @@
 
 class ApiConstants {
   // Base URL backend Laravel — ganti jika IP berubah
-  static const String baseUrl = 'http://10.179.184.242:8000/api';
+  static const String baseUrl = 'http://10.75.21.192:8000/api';
 
   // ── Auth ──────────────────────────────────────────────
   static const String register    = '$baseUrl/register';

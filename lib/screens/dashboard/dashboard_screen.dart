@@ -91,8 +91,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onRefresh: _loadData,
         onSwitchToPos: () => setState(() => _selectedIndex = 1),
         onSwitchToSales: () => setState(() => _selectedIndex = 2),
-        onOpenStockAllocations: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const StockAllocationScreen())),
+        onOpenStockAllocations: () =>
+            Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => StockAllocationScreen(
+            onOpenPos: () => setState(() => _selectedIndex = 1),
+          ),
+        )),
         onLogout: _handleLogout,
       ),
       const POSScreen(),
