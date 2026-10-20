@@ -12,20 +12,30 @@ class SaleProvider extends ChangeNotifier {
   SaleModel?      _lastSale;
   bool            _isLoading            = false;
   String?         _errorMessage;
+  String?         _dashboardError;
 
   // Data dashboard summary
   double _todayTotal      = 0;
   int    _todayCount      = 0;
   double _monthTotal      = 0;
+  double _todayExpenseTotal = 0;
+  List<String> _trendLabels = [];
+  List<double> _revenueTrend = [];
+  List<double> _expenseTrend = [];
 
   List<SaleModel> get sales                => _sales;
   List<dynamic>   get salesReportByProduct => _salesReportByProduct;
   SaleModel?      get lastSale             => _lastSale;
   bool            get isLoading            => _isLoading;
   String?         get errorMessage         => _errorMessage;
+  String?         get dashboardError       => _dashboardError;
   double          get todayTotal           => _todayTotal;
   int             get todayCount           => _todayCount;
   double          get monthTotal           => _monthTotal;
+  double          get todayExpenseTotal    => _todayExpenseTotal;
+  List<String>    get trendLabels          => _trendLabels;
+  List<double>    get revenueTrend         => _revenueTrend;
+  List<double>    get expenseTrend         => _expenseTrend;
 
   // ── Ambil riwayat penjualan ───────────────────────────
   Future<void> fetchSales({String? search, String? metode}) async {
@@ -39,19 +49,23 @@ class SaleProvider extends ChangeNotifier {
       params['metode'] = metode == 'ewallet' ? 'qris' : metode;
     }
 
-    final result = await ApiService.get(
-      ApiConstants.sales,
-      queryParams: params.isEmpty ? null : params,
-    );
+    try {
+      final result = await ApiService.get(
+        ApiConstants.sales,
+        queryParams: params.isEmpty ? null : params,
+      );
 
-    if (result['success'] == true) {
-      final raw  = result['data'];
-      final list = (raw is Map ? raw['data'] : raw) as List<dynamic>? ?? [];
-      _sales = list
-          .map((e) => SaleModel.fromJson(e as Map<String, dynamic>))
-          .toList();
-    } else {
-      _errorMessage = result['message'] as String? ?? 'Gagal memuat penjualan';
+      if (result['success'] == true) {
+        final raw  = result['data'];
+        final list = (raw is Map ? raw['data'] : raw) as List<dynamic>? ?? [];
+        _sales = list
+            .map((e) => SaleModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } else {
+        _errorMessage = result['message'] as String? ?? 'Gagal memuat penjualan';
+      }
+    } catch (error) {
+      _errorMessage = 'Data penjualan tidak dapat dibaca: $error';
     }
 
     _isLoading = false;
@@ -60,81 +74,41 @@ class SaleProvider extends ChangeNotifier {
 
   // ── Ambil data dashboard ──────────────────────────────
   Future<void> fetchDashboard() async {
-    // Coba fetch dari API endpoint dashboard
-    final result = await ApiService.get(ApiConstants.dashboard);
-    
-    if (result['success'] == true) {
-      final data = result['data'] as Map<String, dynamic>? ?? {};
-      final summary = data['summary'] as Map<String, dynamic>? ?? {};
-      
-      // Parse berbagai format field yang mungkin dari backend
-      final todayFromApi = _toDouble(summary['revenue_today'] ?? data['today_sales'] ?? data['penjualan_hari_ini'] ?? 0);
-      final countFromApi = _toInt(summary['transactions_today'] ?? data['today_transactions'] ?? data['transaksi_hari_ini'] ?? data['count'] ?? 0);
-      final monthFromApi = _toDouble(summary['revenue_month'] ?? data['month_sales'] ?? data['penjualan_bulan'] ?? data['bulan'] ?? 0);
-      
-      // Gunakan data dari API hanya jika ada data penjualan/transaksi hari ini yang valid (> 0).
-      // Jika data hari ini bernilai 0, kita lebih memilih melakukan kalkulasi lokal dari sales history
-      // agar terhindar dari ketidakcocokan zona waktu (timezone mismatch) antara server dan client.
-      if ((todayFromApi > 0 || countFromApi > 0) && summary.isNotEmpty) {
-        _todayTotal = todayFromApi;
-        _todayCount = countFromApi;
-        _monthTotal = monthFromApi;
-        notifyListeners();
-        return;
+    _dashboardError = null;
+    try {
+      final result = await ApiService.get(ApiConstants.dashboardSummary);
+      if (result['success'] == true) {
+        final data = result['data'] as Map<String, dynamic>? ?? {};
+        final summary = data['summary'] as Map<String, dynamic>? ?? {};
+        final trends = data['trends'] as Map<String, dynamic>? ?? {};
+        if (summary.isNotEmpty) {
+          _todayTotal = _toDouble(summary['revenue_today']);
+          _todayCount = _toInt(summary['transactions_today']);
+          _monthTotal = _toDouble(summary['revenue_month']);
+          _todayExpenseTotal = _toDouble(summary['expense_today']);
+          _trendLabels = (trends['labels'] as List<dynamic>? ?? [])
+              .map((value) => value.toString()).toList();
+          _revenueTrend = (trends['revenue_data'] as List<dynamic>? ?? [])
+              .map(_toDouble).toList();
+          _expenseTrend = (trends['expense_data'] as List<dynamic>? ?? [])
+              .map(_toDouble).toList();
+          notifyListeners();
+          return;
+        }
+        _dashboardError = result['message'] as String? ?? 'Ringkasan belum dapat dimuat.';
+      } else {
+        _dashboardError = result['message'] as String? ?? 'Ringkasan belum dapat dimuat.';
       }
+    } catch (error) {
+      _dashboardError = 'Ringkasan tidak dapat dibaca: $error';
     }
-    
-    // FALLBACK: Jika API gagal atau tidak ada data hari ini yang valid (>0), hitung dari sales list
-    await _calculateDashboardFromSales();
-  }
-
-  // ── Hitung dashboard dari sales data (fallback) ────────
-  Future<void> _calculateDashboardFromSales() async {
-    // Selalu ambil riwayat penjualan terbaru agar data dihitung dari record paling up-to-date
-    await fetchSales();
-
-    final today = DateTime.now();
-    final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-    
-    double todaySum = 0;
-    int todayCount = 0;
-    double monthSum = 0;
-
-    for (final sale in _sales) {
-      final saleDate = sale.createdAt;
-      double amount = sale.totalAmount;
-
-      try {
-        final parsedDate = DateTime.parse(saleDate).toLocal();
-        final saleDateStr = '${parsedDate.year}-${parsedDate.month.toString().padLeft(2, '0')}-${parsedDate.day.toString().padLeft(2, '0')}';
-        
-        if (saleDateStr == todayStr) {
-          todaySum += amount;
-          todayCount += 1;
-        }
-        
-        final monthStr = '${today.year}-${today.month.toString().padLeft(2, '0')}';
-        final saleMonthStr = '${parsedDate.year}-${parsedDate.month.toString().padLeft(2, '0')}';
-        if (saleMonthStr == monthStr) {
-          monthSum += amount;
-        }
-      } catch (_) {
-        // Fallback jika gagal parsing
-        if (saleDate.startsWith(todayStr)) {
-          todaySum += amount;
-          todayCount += 1;
-        }
-
-        final monthStr = '${today.year}-${today.month.toString().padLeft(2, '0')}';
-        if (saleDate.startsWith(monthStr)) {
-          monthSum += amount;
-        }
-      }
-    }
-
-    _todayTotal = todaySum;
-    _todayCount = todayCount;
-    _monthTotal = monthSum;
+    _todayTotal = 0;
+    _todayCount = 0;
+    _monthTotal = 0;
+    _todayExpenseTotal = 0;
+    _trendLabels = [];
+    _revenueTrend = [];
+    _expenseTrend = [];
     notifyListeners();
   }
 

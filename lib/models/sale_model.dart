@@ -32,7 +32,8 @@ class SaleModel {
       totalAmount   : d(json['total_amount'] ?? json['total'] ?? 0),
       paymentMethod : (json['payment_method'] as String? ?? 'tunai') == 'qris' ? 'ewallet' : (json['payment_method'] as String? ?? 'tunai'),
       notes         : json['notes'] as String?,
-      createdAt     : json['created_at'] as String? ?? '',
+      // Laravel uses transaction_date as the business timestamp for a sale.
+      createdAt     : json['transaction_date'] as String? ?? json['created_at'] as String? ?? '',
       items         : rawItems
           .map((e) => SaleItemModel.fromJson(e as Map<String, dynamic>))
           .toList(),
