@@ -26,17 +26,31 @@ class CartProvider extends ChangeNotifier {
   double get total =>
       _items.values.fold(0.0, (sum, item) => sum + item.subtotal);
 
+  int quantityOf(int productId) => _items[productId]?.quantity ?? 0;
+
   // ── Tambah produk ke keranjang ────────────────────────
-  void addProduct(ProductModel product) {
+  void addProduct(ProductModel product, {int quantity = 1}) {
+    if (product.stock <= 0) return;
     if (_items.containsKey(product.id)) {
-      // Sudah ada → naikkan qty (max = stok tersedia)
-      if (_items[product.id]!.quantity < product.stock) {
-        _items[product.id]!.quantity++;
-      }
+      final next = (_items[product.id]!.quantity + quantity)
+          .clamp(1, product.stock);
+      _items[product.id]!.quantity = next;
     } else {
-      if (product.stock > 0) {
-        _items[product.id] = CartItem(product: product);
-      }
+      _items[product.id] = CartItem(
+        product: product,
+        quantity: quantity.clamp(1, product.stock),
+      );
+    }
+    notifyListeners();
+  }
+
+  void setQuantity(int productId, int quantity) {
+    if (!_items.containsKey(productId)) return;
+    if (quantity <= 0) {
+      _items.remove(productId);
+    } else {
+      final stock = _items[productId]!.product.stock;
+      _items[productId]!.quantity = quantity.clamp(1, stock);
     }
     notifyListeners();
   }

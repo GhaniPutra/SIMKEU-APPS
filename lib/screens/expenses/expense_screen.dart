@@ -1,357 +1,998 @@
-// lib/screens/expenses/expense_screen.dart
-// Layar pengeluaran — light mode premium (CRUD lengkap)
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/currency_formatter.dart';
-import '../../providers/expense_provider.dart';
 import '../../models/expense_model.dart';
-import '../../widgets/common/loading_widget.dart';
-import '../../widgets/common/error_widget.dart';
-import '../../widgets/common/app_button.dart';
-import '../../widgets/common/custom_toast.dart';
+import '../../providers/expense_provider.dart';
 
 class ExpenseScreen extends StatefulWidget {
   const ExpenseScreen({super.key});
+
   @override
   State<ExpenseScreen> createState() => _ExpenseScreenState();
 }
 
 class _ExpenseScreenState extends State<ExpenseScreen> {
+  static const _categories = <String>[
+    'beli_stok',
+    'gaji',
+    'listrik',
+    'air',
+    'sewa',
+    'transport',
+    'lainnya',
+  ];
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback(
-      (_) => context.read<ExpenseProvider>().fetchExpenses());
-  }
-
-  String _formatDate(String raw) {
-    try { return DateFormat('dd MMM yyyy', 'id_ID').format(DateTime.parse(raw));
-    } catch (_) { return raw; }
-  }
-
-  void _showForm({ExpenseModel? existing}) {
-    final amountCtrl = TextEditingController(
-        text: existing != null ? existing.amount.toStringAsFixed(0) : '');
-    final catCtrl   = TextEditingController(text: existing?.category ?? '');
-    final descCtrl  = TextEditingController(text: existing?.description ?? '');
-    final dateCtrl  = TextEditingController(
-        text: existing?.date ?? DateFormat('yyyy-MM-dd').format(DateTime.now()));
-    final formKey   = GlobalKey<FormState>();
-
-    const List<String> categories = [
-      'beli_stok', 'gaji', 'listrik', 'air', 'sewa', 'transport', 'lainnya'];
-
-    final Map<String, String> categoryLabels = {
-      'beli_stok': 'Beli Stok', 'gaji': 'Gaji', 'listrik': 'Listrik',
-      'air': 'Air', 'sewa': 'Sewa', 'transport': 'Transport', 'lainnya': 'Lainnya'};
-
-    final Map<String, IconData> categoryIcons = {
-      'beli_stok': Icons.inventory, 'gaji': Icons.people, 'listrik': Icons.bolt,
-      'air': Icons.water_drop, 'sewa': Icons.home, 'transport': Icons.local_shipping,
-      'lainnya': Icons.more_horiz};
-
-    showModalBottomSheet(
-      context: context, isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) {
-        return StatefulBuilder(builder: (ctx, setModalState) {
-          bool isLoading = false;
-          return Padding(
-            padding: EdgeInsets.only(left: 20, right: 20, top: 20,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-            child: Form(key: formKey, child: SingleChildScrollView(
-              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Center(child: Container(width: 40, height: 4,
-                  decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)))),
-                const SizedBox(height: 16),
-                Text(existing == null ? 'Tambah Pengeluaran' : 'Edit Pengeluaran',
-                  style: GoogleFonts.poppins(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 20),
-                // Tanggal
-                GestureDetector(
-                  onTap: () async {
-                    DateTime? picked = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.tryParse(dateCtrl.text) ?? DateTime.now(),
-                      firstDate: DateTime(2000), lastDate: DateTime(2100),
-                      builder: (context, child) => Theme(
-                        data: Theme.of(context).copyWith(colorScheme: const ColorScheme.light(
-                          primary: AppColors.primary, onPrimary: Colors.white, onSurface: AppColors.textPrimary)),
-                        child: child!),
-                    );
-                    if (picked != null) dateCtrl.text = DateFormat('yyyy-MM-dd').format(picked);
-                  },
-                  child: AbsorbPointer(child: _FormField(
-                    label: 'Tanggal Pengeluaran', ctrl: dateCtrl, hint: 'YYYY-MM-DD',
-                    validator: (v) => v!.isEmpty ? 'Wajib diisi' : null)),
-                ),
-                const SizedBox(height: 12),
-                _FormField(label: 'Jumlah (Rp)', ctrl: amountCtrl, hint: '50000',
-                  keyboard: TextInputType.number, validator: (v) => v!.isEmpty ? 'Wajib diisi' : null),
-                const SizedBox(height: 12),
-                // Dropdown Kategori
-                FormField<String>(
-                  initialValue: catCtrl.text.isEmpty ? null : catCtrl.text,
-                  validator: (v) => v == null || v.isEmpty ? 'Pilih kategori' : null,
-                  builder: (field) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Kategori', style: GoogleFonts.poppins(
-                      color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      value: catCtrl.text.isEmpty ? null : catCtrl.text,
-                      decoration: InputDecoration(
-                        hintText: 'Pilih kategori',
-                        hintStyle: GoogleFonts.poppins(color: AppColors.textHint),
-                        filled: true, fillColor: AppColors.surfaceLight,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.border, width: 1)),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
-                        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.error, width: 1)),
-                      ),
-                      items: categories.map((cat) => DropdownMenuItem(
-                        value: cat,
-                        child: Row(children: [
-                          Icon(categoryIcons[cat] ?? Icons.category, size: 18, color: AppColors.primary),
-                          const SizedBox(width: 8),
-                          Text(categoryLabels[cat] ?? cat, style: GoogleFonts.poppins(color: AppColors.textPrimary)),
-                        ]),
-                      )).toList(),
-                      onChanged: (val) { if (val != null) { catCtrl.text = val; field.didChange(val); } },
-                    ),
-                    if (field.hasError) Padding(padding: const EdgeInsets.only(top: 8),
-                      child: Text(field.errorText ?? '', style: GoogleFonts.poppins(color: AppColors.error, fontSize: 12))),
-                  ]),
-                ),
-                const SizedBox(height: 12),
-                _FormField(label: 'Keterangan (opsional)', ctrl: descCtrl, hint: 'Detail tambahan...', maxLines: 2),
-                const SizedBox(height: 20),
-                StatefulBuilder(builder: (_, ss) => AppButton(
-                  label: existing == null ? 'Simpan' : 'Perbarui', isLoading: isLoading,
-                  onPressed: () async {
-                    if (!formKey.currentState!.validate()) return;
-                    ss(() => isLoading = true);
-                    final data = {
-                      'amount': double.tryParse(amountCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
-                      'category': catCtrl.text.trim(),
-                      'expense_date': dateCtrl.text.trim(),
-                      'description': descCtrl.text.trim(),
-                    };
-                    final provider = context.read<ExpenseProvider>();
-                    final error = existing == null
-                      ? await provider.addExpense(data) : await provider.updateExpense(existing.id, data);
-                    if (!ctx.mounted) return;
-                    Navigator.pop(ctx);
-                    if (!mounted) return;
-                    if (error != null) {
-                      CustomToast.showError(context, error);
-                    } else {
-                      CustomToast.showSuccess(
-                        context,
-                        existing == null
-                            ? 'Pengeluaran berhasil ditambahkan'
-                            : 'Pengeluaran berhasil diperbarui',
-                      );
-                    }
-                  },
-                )),
-              ]),
-            )),
-          );
-        });
-      },
+      (_) => context.read<ExpenseProvider>().fetchExpenses(),
     );
   }
 
-  void _confirmDelete(ExpenseModel expense) {
-    showDialog(context: context, builder: (_) => AlertDialog(
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text('Hapus Pengeluaran?', style: GoogleFonts.poppins(
-        color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
-      content: Text('Pengeluaran ${expense.category} (Rp ${expense.amount.toStringAsFixed(0)}) akan dihapus permanen.',
-        style: GoogleFonts.poppins(color: AppColors.textSecondary)),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context),
-          child: Text('Batal', style: GoogleFonts.poppins(color: AppColors.textSecondary))),
-        TextButton(onPressed: () async {
-          Navigator.pop(context);
-          final error = await context.read<ExpenseProvider>().deleteExpense(expense.id);
-          if (error != null) {
-            if (mounted) CustomToast.showError(context, error);
-          } else {
-            if (mounted) CustomToast.showSuccess(context, 'Pengeluaran berhasil dihapus');
-          }
-        }, child: Text('Hapus', style: GoogleFonts.poppins(color: AppColors.error, fontWeight: FontWeight.w600))),
-      ],
-    ));
+  Future<void> _showForm({ExpenseModel? existing}) async {
+    final amountController = TextEditingController(
+      text: existing?.amount.toStringAsFixed(0) ?? '',
+    );
+    final descriptionController = TextEditingController(
+      text: existing?.description ?? '',
+    );
+    final dateController = TextEditingController(
+      text: existing?.date.isNotEmpty == true
+          ? existing!.date
+          : DateFormat('yyyy-MM-dd').format(DateTime.now()),
+    );
+    final formKey = GlobalKey<FormState>();
+    var selectedCategory = existing?.category;
+    var isSaving = false;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                12,
+                20,
+                MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.border,
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppColors.pastelOrange,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(Icons.receipt_long_rounded,
+                                color: AppColors.warning),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  existing == null
+                                      ? 'Catat pengeluaran'
+                                      : 'Ubah pengeluaran',
+                                  style: GoogleFonts.inter(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Simpan biaya operasional dengan rapi.',
+                                  style: GoogleFonts.inter(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _ExpenseFormField(
+                        controller: amountController,
+                        label: 'Nominal pengeluaran',
+                        hint: 'Contoh: 50000',
+                        prefix: 'Rp',
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          final amount = double.tryParse(
+                            (value ?? '').replaceAll(RegExp(r'[^0-9]'), ''),
+                          );
+                          return amount == null || amount <= 0
+                              ? 'Masukkan nominal lebih dari Rp0.'
+                              : null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Kategori',
+                        style: GoogleFonts.inter(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: selectedCategory,
+                        isExpanded: true,
+                        validator: (value) => value == null
+                            ? 'Pilih kategori pengeluaran.'
+                            : null,
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                        style: GoogleFonts.inter(color: AppColors.textPrimary),
+                        decoration: _fieldDecoration('Pilih kategori'),
+                        items: _categories
+                            .map(
+                              (category) => DropdownMenuItem(
+                                value: category,
+                                child: Row(
+                                  children: [
+                                    Icon(_categoryIcon(category),
+                                        size: 19, color: AppColors.navy),
+                                    const SizedBox(width: 10),
+                                    Text(_categoryLabel(category)),
+                                  ],
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: isSaving
+                            ? null
+                            : (value) => setSheetState(
+                                  () => selectedCategory = value,
+                                ),
+                      ),
+                      const SizedBox(height: 16),
+                      _DateField(
+                        controller: dateController,
+                        onPick: () async {
+                          final picked = await showDatePicker(
+                            context: sheetContext,
+                            initialDate:
+                                DateTime.tryParse(dateController.text) ??
+                                    DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            dateController.text =
+                                DateFormat('yyyy-MM-dd').format(picked);
+                            setSheetState(() {});
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _ExpenseFormField(
+                        controller: descriptionController,
+                        label: 'Catatan',
+                        hint: 'Tambahkan keterangan bila diperlukan',
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: FilledButton.icon(
+                          onPressed: isSaving
+                              ? null
+                              : () async {
+                                  if (!formKey.currentState!.validate()) {
+                                    return;
+                                  }
+                                  setSheetState(() => isSaving = true);
+                                  final data = <String, dynamic>{
+                                    'amount': double.tryParse(amountController
+                                            .text
+                                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                                        0,
+                                    'category': selectedCategory,
+                                    'expense_date': dateController.text,
+                                    'description': descriptionController.text.trim(),
+                                  };
+                                  final provider =
+                                      context.read<ExpenseProvider>();
+                                  final error = existing == null
+                                      ? await provider.addExpense(data)
+                                      : await provider.updateExpense(
+                                          existing.id,
+                                          data,
+                                        );
+                                  if (!sheetContext.mounted) return;
+                                  if (error == null) {
+                                    Navigator.pop(sheetContext);
+                                    if (mounted) {
+                                      _showToast(
+                                        existing == null
+                                            ? 'Pengeluaran berhasil dicatat.'
+                                            : 'Pengeluaran berhasil diperbarui.',
+                                        AppColors.success,
+                                      );
+                                    }
+                                  } else {
+                                    setSheetState(() => isSaving = false);
+                                    if (mounted) _showToast(error, AppColors.error);
+                                  }
+                                },
+                          icon: isSaving
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.check_rounded),
+                          label: Text(isSaving
+                              ? 'Menyimpan'
+                              : existing == null
+                                  ? 'Simpan pengeluaran'
+                                  : 'Simpan perubahan'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    amountController.dispose();
+    descriptionController.dispose();
+    dateController.dispose();
+  }
+
+  Future<void> _confirmDelete(ExpenseModel expense) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          'Hapus pengeluaran?',
+          style: GoogleFonts.inter(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        content: Text(
+          '${_categoryLabel(expense.category)} sebesar ${CurrencyFormatter.format(expense.amount)} akan dihapus permanen.',
+          style: GoogleFonts.inter(
+            color: AppColors.textSecondary,
+            height: 1.45,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.error,
+              minimumSize: const Size(88, 48),
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final error =
+        await context.read<ExpenseProvider>().deleteExpense(expense.id);
+    if (!mounted) return;
+    _showToast(
+      error ?? 'Pengeluaran berhasil dihapus.',
+      error == null ? AppColors.success : AppColors.error,
+    );
+  }
+
+  void _showToast(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: color,
+        content: Text(message),
+      ),
+    );
+  }
+
+  String _formatDate(String raw) {
+    try {
+      return DateFormat('d MMM y', 'id_ID').format(DateTime.parse(raw));
+    } catch (_) {
+      return raw.isEmpty ? 'Tanggal belum tersedia' : raw;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final expProv = context.watch<ExpenseProvider>();
+    final provider = context.watch<ExpenseProvider>();
 
-    return SafeArea(child: Column(children: [
-      // Header
-      Padding(padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-        child: Row(children: [
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Pengeluaran', style: GoogleFonts.poppins(
-              color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
-            Text('Catat & kelola pengeluaran operasional', style: GoogleFonts.poppins(
-              color: AppColors.textSecondary, fontSize: 12)),
-          ])),
-          GestureDetector(onTap: () => _showForm(),
-            child: Container(padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(gradient: AppColors.primaryGradient, borderRadius: BorderRadius.circular(14),
-                boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))]),
-              child: const Icon(Icons.add, color: Colors.white, size: 22))),
-        ])),
-
-      // Total bulan
-      Padding(padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-        child: Container(padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(gradient: AppColors.tealGradient, borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: AppColors.secondary.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))]),
-          child: Row(children: [
-            Container(padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.summarize_rounded, color: Colors.white, size: 24)),
-            const SizedBox(width: 12),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Total Pengeluaran Bulan Ini', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
-              Text(CurrencyFormatter.format(expProv.totalMonth), style: GoogleFonts.poppins(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
-            ]),
-          ]),
-        )),
-      const SizedBox(height: 12),
-
-      // List
-      Expanded(
-        child: expProv.isLoading ? const LoadingWidget()
-          : expProv.errorMessage != null
-            ? AppErrorWidget(message: expProv.errorMessage!, onRetry: () => expProv.fetchExpenses())
-            : expProv.expenses.isEmpty
-              ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Container(padding: const EdgeInsets.all(16),
-                    decoration: const BoxDecoration(color: AppColors.pastelYellow, shape: BoxShape.circle),
-                    child: const Icon(Icons.money_off_rounded, color: AppColors.warning, size: 40)),
-                  const SizedBox(height: 12),
-                  Text('Belum ada pengeluaran', style: GoogleFonts.poppins(color: AppColors.textHint, fontSize: 13)),
-                  const SizedBox(height: 8),
-                  TextButton.icon(onPressed: () => _showForm(),
-                    icon: const Icon(Icons.add, color: AppColors.primary),
-                    label: Text('Tambah Sekarang', style: GoogleFonts.poppins(color: AppColors.primary))),
-                ]))
-              : RefreshIndicator(color: AppColors.primary, backgroundColor: AppColors.surface,
-                  onRefresh: () => expProv.fetchExpenses(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-                    itemCount: expProv.expenses.length,
-                    itemBuilder: (_, i) {
-                      final exp = expProv.expenses[i];
-                      return Dismissible(
-                        key: Key('expense_${exp.id}'),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 16),
-                          margin: const EdgeInsets.only(bottom: 10),
-                          decoration: BoxDecoration(color: AppColors.pastelRed, borderRadius: BorderRadius.circular(16)),
-                          child: const Icon(Icons.delete, color: AppColors.error)),
-                        confirmDismiss: (_) async { _confirmDelete(exp); return false; },
-                        child: _ExpenseTile(expense: exp, formatDate: _formatDate,
-                          onEdit: () => _showForm(existing: exp), onDelete: () => _confirmDelete(exp)),
-                      );
-                    })),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _ExpenseHero(
+              totalMonth: provider.totalMonth,
+              totalToday: provider.totalToday,
+              count: provider.expenses.length,
+              onBack: () => Navigator.maybePop(context),
+              onRefresh: () => provider.fetchExpenses(),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton.icon(
+                  onPressed: _showForm,
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Catat pengeluaran'),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+              child: Row(
+                children: [
+                  Text(
+                    'Riwayat pengeluaran',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${provider.expenses.length} catatan',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(child: _buildExpenseBody(provider)),
+          ],
+        ),
       ),
-    ]));
+    );
+  }
+
+  Widget _buildExpenseBody(ExpenseProvider provider) {
+    if (provider.isLoading && provider.expenses.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.navy),
+      );
+    }
+    if (provider.errorMessage != null && provider.expenses.isEmpty) {
+      return _ExpenseState(
+        icon: Icons.cloud_off_rounded,
+        title: 'Data belum dapat dimuat',
+        message: provider.errorMessage!,
+        actionLabel: 'Coba lagi',
+        onAction: provider.fetchExpenses,
+      );
+    }
+    if (provider.expenses.isEmpty) {
+      return _ExpenseState(
+        icon: Icons.receipt_long_outlined,
+        title: 'Belum ada pengeluaran',
+        message: 'Catat biaya operasional agar laporan keuangan tetap akurat.',
+        actionLabel: 'Catat sekarang',
+        onAction: _showForm,
+      );
+    }
+
+    return RefreshIndicator(
+      color: AppColors.navy,
+      onRefresh: provider.fetchExpenses,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+        itemCount: provider.expenses.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final expense = provider.expenses[index];
+          return _ExpenseCard(
+            expense: expense,
+            formattedDate: _formatDate(expense.date),
+            onEdit: () => _showForm(existing: expense),
+            onDelete: () => _confirmDelete(expense),
+          );
+        },
+      ),
+    );
   }
 }
 
-class _ExpenseTile extends StatelessWidget {
-  final ExpenseModel expense;
-  final String Function(String) formatDate;
-  final VoidCallback onEdit, onDelete;
-  const _ExpenseTile({required this.expense, required this.formatDate, required this.onEdit, required this.onDelete});
+class _ExpenseHero extends StatelessWidget {
+  final double totalMonth;
+  final double totalToday;
+  final int count;
+  final VoidCallback onBack;
+  final Future<void> Function() onRefresh;
+
+  const _ExpenseHero({
+    required this.totalMonth,
+    required this.totalToday,
+    required this.count,
+    required this.onBack,
+    required this.onRefresh,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))]),
-      child: Row(children: [
-        Container(padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: AppColors.pastelOrange, borderRadius: BorderRadius.circular(12)),
-          child: const Icon(Icons.money_off_rounded, color: AppColors.warning, size: 20)),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(CurrencyFormatter.format(expense.amount), style: GoogleFonts.poppins(
-            color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 2),
-          Row(children: [
-            Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: AppColors.pastelIndigo, borderRadius: BorderRadius.circular(4)),
-              child: Text(expense.category.replaceAll('_', ' '), style: GoogleFonts.poppins(
-                color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.w500))),
-            const SizedBox(width: 6),
-            Text(formatDate(expense.date), style: GoogleFonts.poppins(color: AppColors.textHint, fontSize: 11)),
-          ]),
-          if (expense.description != null && expense.description!.isNotEmpty)
-            Padding(padding: const EdgeInsets.only(top: 4),
-              child: Text(expense.description!, style: GoogleFonts.poppins(
-                color: AppColors.textSecondary, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis)),
-        ])),
-        Column(children: [
-          GestureDetector(onTap: onEdit, child: Container(padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: AppColors.pastelIndigo, borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 16))),
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.navy.withValues(alpha: 0.2),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                tooltip: 'Kembali',
+                onPressed: onBack,
+                style: IconButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                ),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pengeluaran',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Kontrol biaya operasional usaha',
+                      style: GoogleFonts.inter(
+                        color: Colors.white.withValues(alpha: 0.72),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'Muat ulang pengeluaran',
+                onPressed: onRefresh,
+                style: IconButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'TOTAL BULAN INI',
+            style: GoogleFonts.inter(
+              color: Colors.white.withValues(alpha: 0.68),
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.1,
+            ),
+          ),
           const SizedBox(height: 6),
-          GestureDetector(onTap: onDelete, child: Container(padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: AppColors.pastelRed, borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.delete_outline, color: AppColors.error, size: 16))),
-        ]),
-      ]),
+          Text(
+            CurrencyFormatter.format(totalMonth),
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.8,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              _HeroMetric(
+                label: 'Hari ini',
+                value: CurrencyFormatter.format(totalToday),
+              ),
+              Container(
+                width: 1,
+                height: 34,
+                color: Colors.white.withValues(alpha: 0.18),
+              ),
+              _HeroMetric(label: 'Catatan', value: '$count transaksi'),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _FormField extends StatelessWidget {
-  final String label; final TextEditingController ctrl; final String hint;
-  final TextInputType keyboard; final String? Function(String?)? validator; final int maxLines;
-  const _FormField({required this.label, required this.ctrl, required this.hint,
-    this.keyboard = TextInputType.text, this.validator, this.maxLines = 1});
+class _HeroMetric extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _HeroMetric({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
-      const SizedBox(height: 6),
-      TextFormField(controller: ctrl, keyboardType: keyboard, maxLines: maxLines,
-        validator: validator,
-        style: GoogleFonts.poppins(color: AppColors.textPrimary, fontSize: 14),
-        decoration: InputDecoration(
-          hintText: hint, hintStyle: GoogleFonts.poppins(color: AppColors.textHint, fontSize: 13),
-          filled: true, fillColor: AppColors.surfaceLight,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.border)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
-          errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.error)),
-        )),
-    ]);
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                color: Colors.white.withValues(alpha: 0.68),
+                fontSize: 11,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpenseCard extends StatelessWidget {
+  final ExpenseModel expense;
+  final String formattedDate;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _ExpenseCard({
+    required this.expense,
+    required this.formattedDate,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final category = expense.category;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.navy.withValues(alpha: 0.035),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: _categoryColor(category),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(_categoryIcon(category), color: _categoryIconColor(category)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _categoryLabel(category),
+                  style: GoogleFonts.inter(
+                    color: AppColors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  formattedDate,
+                  style: GoogleFonts.inter(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (expense.description?.trim().isNotEmpty == true) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    expense.description!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                CurrencyFormatter.format(expense.amount),
+                style: GoogleFonts.inter(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              PopupMenuButton<String>(
+                tooltip: 'Aksi pengeluaran',
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.more_horiz_rounded,
+                    color: AppColors.textSecondary),
+                onSelected: (action) {
+                  if (action == 'edit') onEdit();
+                  if (action == 'delete') onDelete();
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: ListTile(
+                      leading: Icon(Icons.edit_outlined),
+                      title: Text('Ubah'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: ListTile(
+                      leading: Icon(Icons.delete_outline, color: AppColors.error),
+                      title: Text('Hapus',
+                          style: TextStyle(color: AppColors.error)),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExpenseState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  const _ExpenseState({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(28),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  color: AppColors.pastelOrange,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 30, color: AppColors.warning),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 17,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                height: 48,
+                child: FilledButton.icon(
+                  onPressed: onAction,
+                  icon: const Icon(Icons.add_rounded),
+                  label: Text(actionLabel),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpenseFormField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String hint;
+  final String? prefix;
+  final TextInputType keyboardType;
+  final int maxLines;
+  final String? Function(String?)? validator;
+
+  const _ExpenseFormField({
+    required this.controller,
+    required this.label,
+    required this.hint,
+    this.prefix,
+    this.keyboardType = TextInputType.text,
+    this.maxLines = 1,
+    this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          validator: validator,
+          style: GoogleFonts.inter(color: AppColors.textPrimary),
+          decoration: _fieldDecoration(hint).copyWith(
+            prefixText: prefix == null ? null : '$prefix  ',
+            alignLabelWithHint: maxLines > 1,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DateField extends StatelessWidget {
+  final TextEditingController controller;
+  final Future<void> Function() onPick;
+
+  const _DateField({required this.controller, required this.onPick});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Tanggal pengeluaran',
+          style: GoogleFonts.inter(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          readOnly: true,
+          onTap: onPick,
+          validator: (value) => (value ?? '').isEmpty
+              ? 'Pilih tanggal pengeluaran.'
+              : null,
+          style: GoogleFonts.inter(color: AppColors.textPrimary),
+          decoration: _fieldDecoration('Pilih tanggal').copyWith(
+            prefixIcon: const Icon(Icons.calendar_today_outlined,
+                size: 20, color: AppColors.textSecondary),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+InputDecoration _fieldDecoration(String hint) => InputDecoration(
+      hintText: hint,
+      hintStyle: GoogleFonts.inter(color: AppColors.textHint, fontSize: 14),
+      filled: true,
+      fillColor: AppColors.surfaceMuted,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.navy, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.error),
+      ),
+    );
+
+String _categoryLabel(String category) {
+  const labels = <String, String>{
+    'beli_stok': 'Beli stok',
+    'gaji': 'Gaji',
+    'listrik': 'Listrik',
+    'air': 'Air',
+    'sewa': 'Sewa',
+    'transport': 'Transport',
+    'lainnya': 'Lainnya',
+  };
+  return labels[category] ?? category.replaceAll('_', ' ');
+}
+
+IconData _categoryIcon(String category) {
+  switch (category) {
+    case 'beli_stok':
+      return Icons.inventory_2_outlined;
+    case 'gaji':
+      return Icons.groups_2_outlined;
+    case 'listrik':
+      return Icons.bolt_outlined;
+    case 'air':
+      return Icons.water_drop_outlined;
+    case 'sewa':
+      return Icons.home_work_outlined;
+    case 'transport':
+      return Icons.local_shipping_outlined;
+    default:
+      return Icons.more_horiz_rounded;
+  }
+}
+
+Color _categoryColor(String category) {
+  switch (category) {
+    case 'listrik':
+      return AppColors.pastelYellow;
+    case 'air':
+      return AppColors.pastelBlue;
+    case 'gaji':
+      return AppColors.pastelPink;
+    case 'transport':
+      return AppColors.pastelOrange;
+    default:
+      return AppColors.navySoft;
+  }
+}
+
+Color _categoryIconColor(String category) {
+  switch (category) {
+    case 'listrik':
+      return AppColors.warning;
+    case 'air':
+      return AppColors.info;
+    case 'gaji':
+      return const Color(0xFFBE185D);
+    case 'transport':
+      return const Color(0xFFC2410C);
+    default:
+      return AppColors.navy;
   }
 }

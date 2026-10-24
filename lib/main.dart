@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
-import 'core/constants/app_colors.dart';
+import 'core/theme/kasir_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/category_provider.dart';
@@ -16,7 +16,9 @@ import 'providers/stock_allocation_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('id_ID');
   runApp(const MyApp());
 }
 
@@ -25,7 +27,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Status bar terang (ikon gelap) untuk light mode
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
@@ -44,43 +45,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => StockAllocationProvider()),
       ],
       child: MaterialApp(
-        title: 'SIMKEU POS',
+        title: 'SIMKEU Kasir',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          brightness: Brightness.light,
-          scaffoldBackgroundColor: AppColors.background,
-          primaryColor: AppColors.primary,
-          colorScheme: const ColorScheme.light(
-            primary: AppColors.primary,
-            secondary: AppColors.secondary,
-            surface: AppColors.surface,
-            error: AppColors.error,
-          ),
-          textTheme: GoogleFonts.poppinsTextTheme(ThemeData.light().textTheme),
-          appBarTheme: AppBarTheme(
-            backgroundColor: AppColors.surface,
-            elevation: 0,
-            scrolledUnderElevation: 0.5,
-            surfaceTintColor: Colors.transparent,
-            iconTheme: const IconThemeData(color: AppColors.textPrimary),
-            titleTextStyle: GoogleFonts.poppins(
-              color: AppColors.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          bottomSheetTheme: const BottomSheetThemeData(
-            backgroundColor: AppColors.surface,
-            surfaceTintColor: Colors.transparent,
-          ),
-          dialogTheme: DialogThemeData(
-            backgroundColor: AppColors.surface,
-            surfaceTintColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
-        ),
+        theme: KasirTheme.light(),
         home: const AuthWrapper(),
       ),
     );

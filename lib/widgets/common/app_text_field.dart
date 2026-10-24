@@ -1,20 +1,17 @@
-// lib/widgets/common/app_text_field.dart
-// Input field reusable dengan styling light mode premium
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 
 class AppTextField extends StatefulWidget {
-  final String         label;
-  final String?        hint;
+  final String label;
+  final String? hint;
   final TextEditingController controller;
-  final bool           obscureText;
-  final TextInputType  keyboardType;
-  final IconData?      prefixIcon;
-  final String?        Function(String?)? validator;
-  final int            maxLines;
-  final bool           enabled;
+  final bool obscureText;
+  final TextInputType keyboardType;
+  final IconData? prefixIcon;
+  final String? Function(String?)? validator;
+  final int maxLines;
+  final bool enabled;
   final ValueChanged<String>? onChanged;
 
   const AppTextField({
@@ -22,12 +19,12 @@ class AppTextField extends StatefulWidget {
     required this.label,
     required this.controller,
     this.hint,
-    this.obscureText    = false,
-    this.keyboardType   = TextInputType.text,
+    this.obscureText = false,
+    this.keyboardType = TextInputType.text,
     this.prefixIcon,
     this.validator,
-    this.maxLines       = 1,
-    this.enabled        = true,
+    this.maxLines = 1,
+    this.enabled = true,
     this.onChanged,
   });
 
@@ -45,7 +42,7 @@ class _AppTextFieldState extends State<AppTextField> {
       children: [
         Text(
           widget.label,
-          style: GoogleFonts.poppins(
+          style: GoogleFonts.inter(
             color: AppColors.textSecondary,
             fontSize: 13,
             fontWeight: FontWeight.w500,
@@ -53,22 +50,22 @@ class _AppTextFieldState extends State<AppTextField> {
         ),
         const SizedBox(height: 6),
         TextFormField(
-          controller   : widget.controller,
-          obscureText  : widget.obscureText && !_showPassword,
-          keyboardType : widget.keyboardType,
-          maxLines     : widget.obscureText ? 1 : widget.maxLines,
-          enabled      : widget.enabled,
-          validator    : widget.validator,
-          onChanged    : widget.onChanged,
-          style: GoogleFonts.poppins(
-            color    : AppColors.textPrimary,
-            fontSize : 14,
+          controller: widget.controller,
+          obscureText: widget.obscureText && !_showPassword,
+          keyboardType: widget.keyboardType,
+          maxLines: widget.obscureText ? 1 : widget.maxLines,
+          enabled: widget.enabled,
+          validator: widget.validator,
+          onChanged: widget.onChanged,
+          style: GoogleFonts.inter(
+            color: AppColors.textPrimary,
+            fontSize: 14,
           ),
           decoration: InputDecoration(
-            hintText : widget.hint,
-            hintStyle: GoogleFonts.poppins(
-              color    : AppColors.textHint,
-              fontSize : 14,
+            hintText: widget.hint,
+            hintStyle: GoogleFonts.inter(
+              color: AppColors.textHint,
+              fontSize: 14,
             ),
             prefixIcon: widget.prefixIcon != null
                 ? Icon(widget.prefixIcon, color: AppColors.textHint, size: 20)
@@ -80,33 +77,35 @@ class _AppTextFieldState extends State<AppTextField> {
                       color: AppColors.textHint,
                       size: 20,
                     ),
-                    onPressed: () => setState(() => _showPassword = !_showPassword),
+                    onPressed: () =>
+                        setState(() => _showPassword = !_showPassword),
                   )
                 : null,
-            filled      : true,
-            fillColor   : AppColors.surfaceLight,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            filled: true,
+            fillColor: AppColors.surfaceMuted,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide  : BorderSide.none,
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide  : const BorderSide(color: AppColors.border, width: 1),
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide  : const BorderSide(color: AppColors.primary, width: 1.5),
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: AppColors.navy, width: 1.2),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide  : const BorderSide(color: AppColors.error, width: 1),
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: AppColors.error, width: 1),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide  : const BorderSide(color: AppColors.error, width: 1.5),
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: AppColors.error, width: 1.5),
             ),
-            errorStyle: GoogleFonts.poppins(
+            errorStyle: GoogleFonts.inter(
               color: AppColors.error,
               fontSize: 11,
             ),

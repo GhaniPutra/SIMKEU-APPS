@@ -1,78 +1,77 @@
-// lib/core/constants/app_colors.dart
-// Palet warna premium LIGHT mode untuk aplikasi SIMKEU POS
-// Soft white background dengan aksen colorful yang vibrant
-
 import 'package:flutter/material.dart';
 
+/// Palet SIMKEU Kasir — navy gelap, permukaan putih, aksen hijau lunas.
 class AppColors {
-  // ── Background ────────────────────────────────────────
-  static const Color background     = Color(0xFFF7F8FC); // Putih kebiruan soft
-  static const Color surface        = Color(0xFFFFFFFF); // Card putih bersih
-  static const Color surfaceLight   = Color(0xFFF2F3F8); // Input field bg
+  static const Color background = Color(0xFFF4F7FB);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color surfaceMuted = Color(0xFFF1F4F8);
+  static const Color surfaceLight = Color(0xFFF1F4F8);
 
-  // ── Accent / Primary ──────────────────────────────────
-  static const Color primary        = Color(0xFF5B5FE7); // Indigo cerah
-  static const Color primaryLight   = Color(0xFF8184F0);
-  static const Color primaryDark    = Color(0xFF4346C7);
+  static const Color navy = Color(0xFF1A2B45);
+  static const Color navyDeep = Color(0xFF122033);
+  static const Color navyMid = Color(0xFF243656);
+  static const Color navySoft = Color(0xFFE8EEF6);
 
-  // ── Secondary / Teal ──────────────────────────────────
-  static const Color secondary      = Color(0xFF00C9A7); // Mint teal
-  static const Color secondaryDark  = Color(0xFF00A88B);
+  static const Color primary = navy;
+  static const Color primaryLight = Color(0xFF3A4F70);
+  static const Color primaryDark = navyDeep;
+  static const Color secondary = Color(0xFF2F9E6A);
+  static const Color secondaryDark = Color(0xFF217A50);
 
-  // ── Status ────────────────────────────────────────────
-  static const Color success        = Color(0xFF22C55E); // Hijau cerah
-  static const Color warning        = Color(0xFFF59E0B); // Amber warm
-  static const Color error          = Color(0xFFEF4444); // Merah clean
-  static const Color info           = Color(0xFF3B82F6); // Biru info
+  static const Color success = Color(0xFF22C55E);
+  static const Color successSoft = Color(0xFFE8F8EE);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color error = Color(0xFFEF4444);
+  static const Color info = Color(0xFF3B82F6);
 
-  // ── Text ──────────────────────────────────────────────
-  static const Color textPrimary    = Color(0xFF1A1D3B); // Dark navy
-  static const Color textSecondary  = Color(0xFF6B7299); // Medium grey
-  static const Color textHint       = Color(0xFFA0A5C0); // Light grey
+  static const Color textPrimary = Color(0xFF1A2B45);
+  static const Color textSecondary = Color(0xFF7B8498);
+  static const Color textHint = Color(0xFFA8B0C0);
+  static const Color onNavy = Color(0xFFF4F7FB);
 
-  // ── Border / Divider ──────────────────────────────────
-  static const Color border         = Color(0xFFE8EAF0); // Border tipis
-  static const Color divider        = Color(0xFFF0F1F5); // Divider halus
+  static const Color border = Color(0xFFE6EAF1);
+  static const Color divider = Color(0xFFEEF1F6);
 
-  // ── Gradient POS card ─────────────────────────────────
+  static const Color pastelIndigo = Color(0xFFE8EEF6);
+  static const Color pastelTeal = Color(0xFFE8F8EE);
+  static const Color pastelOrange = Color(0xFFFFF4E5);
+  static const Color pastelPink = Color(0xFFFFEEF4);
+  static const Color pastelBlue = Color(0xFFEEF4FF);
+  static const Color pastelGreen = Color(0xFFE8F8EE);
+  static const Color pastelRed = Color(0xFFFEECEC);
+  static const Color pastelYellow = Color(0xFFFFF8E8);
+
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+    colors: [navy, navyMid],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient tealGradient = LinearGradient(
-    colors: [Color(0xFF06B6D4), Color(0xFF10B981)],
+    colors: [Color(0xFF2F9E6A), Color(0xFF22C55E)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient cardGradient = LinearGradient(
-    colors: [Color(0xFFFFFFFF), Color(0xFFF7F8FC)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
+  static const LinearGradient splashGradient = LinearGradient(
+    colors: [Color(0xFFF7FAFD), Color(0xFFEAF0F8), Color(0xFFF8FBFE)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
   );
 
-  // ── Gradient tambahan untuk variasi warna ─────────────
-  static const LinearGradient warmGradient = LinearGradient(
-    colors: [Color(0xFFF97316), Color(0xFFF59E0B)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  static List<BoxShadow> get cardShadow => [
+        BoxShadow(
+          color: navy.withValues(alpha: 0.05),
+          blurRadius: 18,
+          offset: const Offset(0, 8),
+        ),
+      ];
 
-  static const LinearGradient pinkGradient = LinearGradient(
-    colors: [Color(0xFFEC4899), Color(0xFFF472B6)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  // ── Pastel backgrounds untuk ikon ─────────────────────
-  static const Color pastelIndigo   = Color(0xFFEEF0FF);
-  static const Color pastelTeal     = Color(0xFFE6FBF5);
-  static const Color pastelOrange   = Color(0xFFFFF3E6);
-  static const Color pastelPink     = Color(0xFFFFF0F6);
-  static const Color pastelBlue     = Color(0xFFEFF6FF);
-  static const Color pastelGreen    = Color(0xFFECFDF5);
-  static const Color pastelRed      = Color(0xFFFEF2F2);
-  static const Color pastelYellow   = Color(0xFFFFFBEB);
+  static List<BoxShadow> get softShadow => [
+        BoxShadow(
+          color: navy.withValues(alpha: 0.04),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+        ),
+      ];
 }

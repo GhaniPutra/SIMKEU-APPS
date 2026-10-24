@@ -18,9 +18,11 @@ class ProductProvider extends ChangeNotifier {
   int?    _selectedCategoryId;
 
   List<ProductModel>  get products   => _filtered;
+  List<ProductModel>  get allProducts => _products;
   List<CategoryModel> get categories => _categories;
   bool                get isLoading  => _isLoading;
   String?             get errorMessage => _errorMessage;
+  int?                get selectedCategoryId => _selectedCategoryId;
 
   // ── Ambil semua produk dari API ───────────────────────
   Future<void> fetchProducts() async {
