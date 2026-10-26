@@ -3,8 +3,22 @@
 
 class ApiConstants {
   // Base URL backend Laravel — ganti jika IP berubah
-  static const String serverUrl = 'http://10.179.184.108:8000';
+  static const String serverUrl = 'http://10.75.21.192:8000';
   static const String baseUrl = '$serverUrl/api';
+  static const String broadcastAuth = '$baseUrl/broadcasting/auth';
+  static const String reverbAppKey = String.fromEnvironment('REVERB_APP_KEY');
+  static const String configuredReverbScheme = String.fromEnvironment('REVERB_SCHEME');
+  static const int configuredReverbPort =
+      int.fromEnvironment('REVERB_PORT', defaultValue: 0);
+  static String get reverbScheme => configuredReverbScheme.isEmpty
+      ? Uri.parse(serverUrl).scheme
+      : configuredReverbScheme;
+  static int get reverbPort => configuredReverbPort > 0
+      ? configuredReverbPort
+      : (reverbScheme == 'https' ? 443 : 8080);
+  static const String configuredReverbHost = String.fromEnvironment('REVERB_HOST');
+  static String get reverbHost =>
+      configuredReverbHost.isEmpty ? Uri.parse(serverUrl).host : configuredReverbHost;
 
   /// Membuat URL publik untuk path gambar yang dikembalikan Laravel.
   /// Backend biasanya mengirim `products/nama-file.jpg`, tetapi URL absolut

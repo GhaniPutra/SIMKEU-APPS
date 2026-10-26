@@ -13,6 +13,8 @@ class SaleProvider extends ChangeNotifier {
   bool            _isLoading            = false;
   String?         _errorMessage;
   String?         _dashboardError;
+  String? _salesSearch;
+  String? _salesMethod;
 
   // Data dashboard summary
   double _todayTotal      = 0;
@@ -39,6 +41,8 @@ class SaleProvider extends ChangeNotifier {
 
   // ── Ambil riwayat penjualan ───────────────────────────
   Future<void> fetchSales({String? search, String? metode}) async {
+    _salesSearch = search;
+    _salesMethod = metode;
     _isLoading    = true;
     _errorMessage = null;
     notifyListeners();
@@ -71,6 +75,9 @@ class SaleProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
+  Future<void> refreshSales() =>
+      fetchSales(search: _salesSearch, metode: _salesMethod);
 
   // ── Ambil data dashboard ──────────────────────────────
   Future<void> fetchDashboard() async {

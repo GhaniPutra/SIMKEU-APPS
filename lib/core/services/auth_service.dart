@@ -7,10 +7,13 @@ import 'api_service.dart';
 
 class AuthService {
   // Key untuk SharedPreferences
-  static const String _tokenKey   = 'auth_token';
+  static const String _tokenKey = 'auth_token';
   static const String _userNameKey = 'user_name';
   static const String _userEmailKey = 'user_email';
-  static const String _userIdKey  = 'user_id';
+  static const String _userIdKey = 'user_id';
+  static const String _storeIdKey = 'store_id';
+  static const String _roleKey = 'user_role';
+  static const String _permissionsKey = 'user_permissions';
 
   // ── Login ─────────────────────────────────────────────
   // Mengirim email & password, menyimpan token jika berhasil
@@ -35,7 +38,7 @@ class AuthService {
     if (result['success'] == true) {
       try {
         final data = result['data'] as Map<String, dynamic>?;
-        
+
         if (data == null) {
           return {
             'success': false,
@@ -44,7 +47,7 @@ class AuthService {
         }
 
         final token = data['token'] as String?;
-        final user  = data['user']  as Map<String, dynamic>?;
+        final user = data['user'] as Map<String, dynamic>?;
 
         // Validasi token
         if (token == null || token.isEmpty) {
@@ -68,6 +71,11 @@ class AuthService {
           userId: user['id']?.toString() ?? '',
           userName: user['name']?.toString() ?? 'Pegawai',
           userEmail: user['email']?.toString() ?? '',
+          storeId: int.tryParse(user['store_id']?.toString() ?? '') ?? 0,
+          role: user['role']?.toString() ?? '',
+          permissions: (user['permissions'] as List<dynamic>? ?? const [])
+              .map((permission) => permission.toString())
+              .toList(),
         );
 
         return result;
@@ -104,10 +112,44 @@ class AuthService {
   static Future<Map<String, String>> getSavedUser() async {
     final prefs = await SharedPreferences.getInstance();
     return {
-      'id'    : prefs.getString(_userIdKey)    ?? '',
-      'name'  : prefs.getString(_userNameKey)  ?? 'Pegawai',
-      'email' : prefs.getString(_userEmailKey) ?? '',
+      'id': prefs.getString(_userIdKey) ?? '',
+      'name': prefs.getString(_userNameKey) ?? 'Pegawai',
+      'email': prefs.getString(_userEmailKey) ?? '',
+      'store_id': (prefs.getInt(_storeIdKey) ?? 0).toString(),
+      'role': prefs.getString(_roleKey) ?? '',
+      'permissions':
+          (prefs.getStringList(_permissionsKey) ?? const []).join(','),
     };
+  }
+
+  static Future<String?> getAuthToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_tokenKey);
+  }
+
+  static Future<Map<String, dynamic>?> refreshSavedUser() async {
+    final token = await getAuthToken();
+    if (token == null) return null;
+
+    final result = await ApiService.get(ApiConstants.user);
+    final user = result['success'] == true
+        ? result['data'] as Map<String, dynamic>?
+        : null;
+    if (user == null || await getAuthToken() != token) return null;
+
+    await _saveSession(
+      token: token,
+      userId: user['id']?.toString() ?? '',
+      userName: user['name']?.toString() ?? 'Pegawai',
+      userEmail: user['email']?.toString() ?? '',
+      storeId: int.tryParse(user['store_id']?.toString() ?? '') ?? 0,
+      role: user['role']?.toString() ?? '',
+      permissions: (user['permissions'] as List<dynamic>? ?? const [])
+          .map((permission) => permission.toString())
+          .toList(),
+    );
+
+    return user;
   }
 
   // ── Simpan sesi login ─────────────────────────────────
@@ -116,12 +158,18 @@ class AuthService {
     required String userId,
     required String userName,
     required String userEmail,
+    required int storeId,
+    required String role,
+    required List<String> permissions,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey,    token);
-    await prefs.setString(_userIdKey,   userId);
+    await prefs.setString(_tokenKey, token);
+    await prefs.setString(_userIdKey, userId);
     await prefs.setString(_userNameKey, userName);
     await prefs.setString(_userEmailKey, userEmail);
+    await prefs.setInt(_storeIdKey, storeId);
+    await prefs.setString(_roleKey, role);
+    await prefs.setStringList(_permissionsKey, permissions);
   }
 
   // ── Hapus sesi login ──────────────────────────────────
@@ -131,5 +179,8 @@ class AuthService {
     await prefs.remove(_userIdKey);
     await prefs.remove(_userNameKey);
     await prefs.remove(_userEmailKey);
+    await prefs.remove(_storeIdKey);
+    await prefs.remove(_roleKey);
+    await prefs.remove(_permissionsKey);
   }
 }

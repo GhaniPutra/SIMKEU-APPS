@@ -7,19 +7,21 @@ import '../core/services/api_service.dart';
 import '../models/user_model.dart';
 
 class EmployeeProvider extends ChangeNotifier {
-  List<UserModel> _employees   = [];
-  UserModel?      _selectedEmployee;
-  bool            _isLoading   = false;
-  String?         _errorMessage;
+  List<UserModel> _employees = [];
+  UserModel? _selectedEmployee;
+  bool _isLoading = false;
+  String? _errorMessage;
+  String? _search;
 
-  List<UserModel> get employees           => _employees;
-  UserModel?      get selectedEmployee    => _selectedEmployee;
-  bool            get isLoading           => _isLoading;
-  String?         get errorMessage        => _errorMessage;
+  List<UserModel> get employees => _employees;
+  UserModel? get selectedEmployee => _selectedEmployee;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
 
   // ── Ambil daftar semua karyawan ──────────────────────
   Future<void> fetchEmployees({String? search}) async {
-    _isLoading    = true;
+    _search = search;
+    _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
@@ -33,7 +35,7 @@ class EmployeeProvider extends ChangeNotifier {
       );
 
       if (result['success'] == true) {
-        final raw  = result['data'];
+        final raw = result['data'];
         final list = (raw is Map ? raw['data'] : raw) as List<dynamic>? ?? [];
         _employees = list
             .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
@@ -49,6 +51,8 @@ class EmployeeProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
+  Future<void> refreshEmployees() => fetchEmployees(search: _search);
 
   // ── Ambil detail satu karyawan ───────────────────────
   Future<String?> fetchEmployeeDetail(int id) async {

@@ -13,6 +13,8 @@ class ExpenseProvider extends ChangeNotifier {
   String?            _errorMessage;
   double             _totalMonth            = 0;
   double             _totalToday            = 0;
+  String? _monthFilter;
+  String? _yearFilter;
 
   List<ExpenseModel> get expenses                => _expenses;
   List<dynamic>      get expensesReportByCategory => _expensesReportByCategory;
@@ -23,6 +25,8 @@ class ExpenseProvider extends ChangeNotifier {
 
   // ── Ambil daftar pengeluaran ──────────────────────────
   Future<void> fetchExpenses({String? bulan, String? tahun}) async {
+    _monthFilter = bulan;
+    _yearFilter = tahun;
     _isLoading    = true;
     _errorMessage = null;
     notifyListeners();
@@ -50,6 +54,9 @@ class ExpenseProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
+  Future<void> refreshExpenses() =>
+      fetchExpenses(bulan: _monthFilter, tahun: _yearFilter);
 
   // ── Hitung total pengeluaran hari ini dan bulan ini ──
   void _calculateExpenseTotals() {

@@ -1,6 +1,8 @@
 // lib/providers/auth_provider.dart
 // State management untuk autentikasi pengguna
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../core/services/auth_service.dart';
 import '../models/user_model.dart';
@@ -21,6 +23,7 @@ class AuthProvider extends ChangeNotifier {
   // Data user yang sedang login
   UserModel? _currentUser;
   UserModel? get currentUser => _currentUser;
+  bool _isRefreshingUser = false;
 
   // ── Cek sesi saat app dibuka ──────────────────────────
   Future<void> checkSession() async {
@@ -31,9 +34,34 @@ class AuthProvider extends ChangeNotifier {
         id    : int.tryParse(saved['id'] ?? '0') ?? 0,
         name  : saved['name'] ?? 'Pegawai',
         email : saved['email'] ?? '',
+        storeId: int.tryParse(saved['store_id'] ?? '0') ?? 0,
+        role: saved['role'] ?? '',
+        permissions: (saved['permissions'] ?? '')
+            .split(',')
+            .where((permission) => permission.isNotEmpty)
+            .toList(),
       );
     }
     notifyListeners();
+    if (_isLoggedIn && (_currentUser?.storeId ?? 0) == 0) {
+      unawaited(refreshCurrentUser());
+    }
+  }
+
+  Future<void> refreshCurrentUser() async {
+    if (_isRefreshingUser) return;
+    _isRefreshingUser = true;
+    try {
+      final user = await AuthService.refreshSavedUser();
+      if (user != null) {
+        _currentUser = UserModel.fromJson(user);
+        notifyListeners();
+      }
+    } catch (error) {
+      debugPrint('Unable to refresh the saved user profile: $error');
+    } finally {
+      _isRefreshingUser = false;
+    }
   }
 
   // ── Login ─────────────────────────────────────────────
